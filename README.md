@@ -12,3 +12,9 @@ A distributed Temperature Sensor connected via LoRa with a Master Module with a 
 - [sandeepmistry - arduino-LoRa](https://github.com/sandeepmistry/arduino-LoRa)
 - [adafruit - Adafruit_BME280](https://github.com/adafruit/Adafruit_BME280_Library)
 - [adafruit - Adafruit_SSD1306](https://github.com/adafruit/Adafruit_SSD1306)
+
+
+## Housing
+
+![Housing](doc/housing.png)
+![Cover](doc/housing-cover.png)
