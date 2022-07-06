@@ -1,6 +1,8 @@
 # LDTS - LoRa Distributed Temperature Sensor
 A distributed Temperature Sensor connected via LoRa with a Master Module with a WLAN connection.
 
+The aim of this project is to record the temperatures of the individual units in a small apartment complex in order to obtain an overall picture of the heating and cooling performance.
+
 ![Housing printed](doc/housing-printed.png)
 
 ## Used Hardware
