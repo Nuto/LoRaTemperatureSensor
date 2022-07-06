@@ -151,8 +151,6 @@ void loop() {
   displayNormalText(0, 47, String(humidity));  
   display.display();
 
-  Serial.println();
-
   loopCounter++;
   delay(1000);
 }
