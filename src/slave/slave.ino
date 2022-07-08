@@ -32,14 +32,20 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
 #define BAND    868E6
 
 //Identifier
-#define MODULE_IDENTIFIER "SENSOR1"
+#define MODULE_IDENTIFIER "LSM2" //Lora Sensor Module 1
 
 //Sensor config
 #define ROLLING_AVERAGE_DATAPOINT_NUMBER 100
 
 double temperature;
-double averageTemperature;
 double humidity;
+double pressure;
+
+double averageTemperature;
+double averageHumidity;
+
+double lastSentTemperature;
+double lastSentHumidity;
 
 unsigned int loopCounter;
 
@@ -80,6 +86,8 @@ void initializeOledDisplay() {
     Serial.println(F("SSD1306 allocation failed"));
     while (1);
   }
+
+  display.setRotation(2); //Rotate 180°
 }
 
 void initializeLoRa() {
@@ -110,11 +118,25 @@ void initializeTemperatureSensor() {
   }
 
   averageTemperature = bme.readTemperature();
+  averageHumidity = bme.readHumidity();
+}
+
+void showModuleInfo() {
+  display.clearDisplay();
+  displaySmallText(0, 0, "Module Identifier");
+  displayBigText(0, 20, MODULE_IDENTIFIER);
+  display.display();
+  delay(3000);
 }
 
 double calculateAverageTemperature (double currentTemperature) {
   averageTemperature -= averageTemperature / ROLLING_AVERAGE_DATAPOINT_NUMBER;
   averageTemperature += currentTemperature / ROLLING_AVERAGE_DATAPOINT_NUMBER;
+}
+
+double calculateAverageHumidity (double currentHumidity) {
+  averageHumidity -= averageHumidity / ROLLING_AVERAGE_DATAPOINT_NUMBER;
+  averageHumidity += currentHumidity / ROLLING_AVERAGE_DATAPOINT_NUMBER;
 }
 
 void setup() {
@@ -124,6 +146,7 @@ void setup() {
 
   resetOledDisplay();
   initializeOledDisplay();
+  showModuleInfo();
   initializeLoRa();
   initializeTemperatureSensor();
 }
@@ -131,24 +154,34 @@ void setup() {
 void loop() {
   temperature = bme.readTemperature();
   humidity = bme.readHumidity();
+  pressure = bme.readPressure() / 100.0F;
 
   calculateAverageTemperature(temperature);
+  calculateAverageHumidity(humidity);
 
   if (loopCounter % 20 == 0 || loopCounter == 0)
   {
-    LoRa.beginPacket();
-    LoRa.print(String(MODULE_IDENTIFIER) + "#t:" + String(temperature) + "#h:" + String(humidity));
-    LoRa.endPacket();
+    int differenceTemperature = abs((lastSentTemperature - averageTemperature) * 100);
+    Serial.println("Diff = " + String(differenceTemperature) + " (" + String(lastSentTemperature) + "/" + String(averageTemperature) + ")");
+    if (differenceTemperature > 10)
+    {
+      LoRa.beginPacket();
+      LoRa.print(String(MODULE_IDENTIFIER) + "#t:" + String(temperature) + "#h:" + String(humidity));
+      LoRa.endPacket();
+
+      lastSentTemperature = averageTemperature;
+    }
   }
 
   Serial.println("Temperature = " + String(temperature) + "*C");
   Serial.println("Humidity = " + String(humidity) + "%");
+  Serial.println("Pressure = " + String(pressure / 100.0F));
 
   display.clearDisplay();
   displaySmallText(0, 0, "Temperature (degree)");
   displayNormalText(0, 12, String(temperature));
   displaySmallText(0, 35, "Humidity (percentage)");
-  displayNormalText(0, 47, String(humidity));  
+  displayNormalText(0, 47, String(averageHumidity));
   display.display();
 
   loopCounter++;
