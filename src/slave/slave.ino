@@ -63,10 +63,17 @@ void displayNormalText(int positionX, int positionY, String text) {
   display.print(text);
 }
 
-void displayBigText(int positionX, int positionY, String text) {
+void displayLargeText(int positionX, int positionY, String text) {
   display.setTextColor(WHITE);
   display.setCursor(positionX, positionY);
   display.setTextSize(3);
+  display.print(text);
+}
+
+void displayExtraLargeText(int positionX, int positionY, String text) {
+  display.setTextColor(WHITE);
+  display.setCursor(positionX, positionY);
+  display.setTextSize(4);
   display.print(text);
 }
 
@@ -92,8 +99,8 @@ void initializeOledDisplay() {
 
 void initializeLoRa() {
   display.clearDisplay();
-  displayNormalText(5, 10, "Initialize");
-  displayNormalText(5, 35, "LoRa");
+  displaySmallText(0, 0, "Initialize");
+  displayLargeText(0, 20, "LoRa");
   display.display();
 
   Serial.println(F("Initialize LoRa"));
@@ -106,9 +113,17 @@ void initializeLoRa() {
   }
   LoRa.setSpreadingFactor(12);
   LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN);
+
+  delay(500);
 }
 
 void initializeTemperatureSensor() {
+  display.clearDisplay();
+  displaySmallText(0, 0, "Initialize");
+  displayLargeText(0, 20, "TH");
+  displayNormalText(40, 28, "Sensor");
+  display.display();
+  
   //Set Pins for BME280 Sensor
   I2Cone.begin(SDA, SCL, 100000); 
   
@@ -119,13 +134,16 @@ void initializeTemperatureSensor() {
 
   averageTemperature = bme.readTemperature();
   averageHumidity = bme.readHumidity();
+
+  delay(500);
 }
 
 void showModuleInfo() {
   display.clearDisplay();
   displaySmallText(0, 0, "Module Identifier");
-  displayBigText(0, 20, MODULE_IDENTIFIER);
+  displayLargeText(0, 20, MODULE_IDENTIFIER);
   display.display();
+  
   delay(3000);
 }
 
@@ -173,15 +191,14 @@ void loop() {
     }
   }
 
-  Serial.println("Temperature = " + String(temperature) + "*C");
-  Serial.println("Humidity = " + String(humidity) + "%");
-  Serial.println("Pressure = " + String(pressure / 100.0F));
+  Serial.print("Temperature:" + String(temperature) + ", ");
+  Serial.print("Humidity:" + String(humidity) + ", ");
+  Serial.println("Pressure:" + String(pressure / 100.0F));
 
   display.clearDisplay();
-  displaySmallText(0, 0, "Temperature (degree)");
-  displayNormalText(0, 12, String(temperature));
-  displaySmallText(0, 35, "Humidity (percentage)");
-  displayNormalText(0, 47, String(averageHumidity));
+  displayExtraLargeText(0, 15, String(temperature));
+  displayNormalText(116, 0, "o");
+  displaySmallText(0, 52, "Humidity: " + String(averageHumidity) + "%");
   display.display();
 
   loopCounter++;

@@ -34,10 +34,17 @@ void displayNormalText(int positionX, int positionY, String text) {
   display.print(text);
 }
 
-void displayBigText(int positionX, int positionY, String text) {
+void displayLargeText(int positionX, int positionY, String text) {
   display.setTextColor(WHITE);
   display.setCursor(positionX, positionY);
   display.setTextSize(3);
+  display.print(text);
+}
+
+void displayExtraLargeText(int positionX, int positionY, String text) {
+  display.setTextColor(WHITE);
+  display.setCursor(positionX, positionY);
+  display.setTextSize(4);
   display.print(text);
 }
 
@@ -57,12 +64,14 @@ void initializeOledDisplay() {
     Serial.println(F("SSD1306 allocation failed"));
     while (1);
   }
+
+  display.setRotation(2); //Rotate 180°
 }
 
 void initializeLoRa() {
   display.clearDisplay();
-  displayNormalText(5, 10, "init");
-  displayNormalText(30, 35, "LoRa");
+  displaySmallText(0, 0, "Initialize");
+  displayLargeText(0, 20, "LoRa");
   display.display();
 
   Serial.println(F("Initialize LoRa"));
@@ -75,6 +84,8 @@ void initializeLoRa() {
   }
   LoRa.setSpreadingFactor(12);
   LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN);
+
+  delay(500);
 }
 
 void setup() {
@@ -93,7 +104,8 @@ void loop() {
   int packetSize = LoRa.parsePacket();
   if (packetSize) {
     receiveCounter++;
-    displayNormalText(5, 10, "receive " + String(receiveCounter));
+    displayNormalText(0, 8, "package");
+    displayNormalText(0, 25, "received");
     
     // received a packet
     Serial.print("Received packet '");
@@ -107,8 +119,8 @@ void loop() {
     Serial.print("' with RSSI ");
     Serial.println(LoRa.packetRssi());
   } else {
-    displayNormalText(5, 10, "wait for");
-    displayNormalText(5, 35, "package...");
+    displaySmallText(0, 0, "Received packages");
+    displayLargeText(0, 20, String(receiveCounter));
   }
 
   display.display();
