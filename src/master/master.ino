@@ -2,6 +2,9 @@
 #include <SPI.h>
 #include "LoRa.h"
 
+//Libraries for WLAN
+#include <WiFi.h>
+
 //Libraries for OLED Display SSD1306
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -17,6 +20,10 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
 
 //Prepare LORA
 #define BAND    868E6
+
+//Prepare WLAN
+const char* ssid = "xxxxxx"; //replace "xxxxxx" with your WIFI's ssid
+const char* password = "xxxxxx"; //replace "xxxxxx" with your WIFI's password
 
 unsigned int receiveCounter;
 
@@ -88,14 +95,53 @@ void initializeLoRa() {
   delay(500);
 }
 
+void initializeWLAN() {
+  display.clearDisplay();
+  displaySmallText(0, 0, "Initialize");
+  displayLargeText(0, 20, "WLAN");
+  display.display();
+
+  WiFi.disconnect(true);
+  delay(1000);
+  
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoConnect(true);
+  WiFi.setAutoReconnect(true);
+  WiFi.setHostname("LDTS-Gateway");
+  WiFi.begin(ssid, password);
+
+  byte retryCount = 0;
+  byte maxRetries = 10;
+  while (WiFi.status() != WL_CONNECTED && retryCount < maxRetries) {
+    retryCount++;
+    delay(500);
+    Serial.print(".");
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    displaySmallText(0, 44, "Connected");
+    display.display();
+    delay(1000);
+
+    return;
+  } else {
+    displaySmallText(0, 44, "Cannot connect");
+    display.display();
+
+    Serial.println(F("WLAN initialization failed!"));
+    while (1);
+  }
+}
+
 void setup() {
   //Prepare Serial connection
   Serial.begin(115200);
-  Serial.println("Initialize");
+  Serial.println("Initialize system");
 
   resetOledDisplay();
   initializeOledDisplay();
   initializeLoRa();
+  initializeWLAN();
 }
 
 void loop() {

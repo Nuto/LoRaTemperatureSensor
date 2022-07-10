@@ -160,7 +160,7 @@ double calculateAverageHumidity (double currentHumidity) {
 void setup() {
   //Prepare Serial connection
   Serial.begin(115200);
-  Serial.println("Initialize");
+  Serial.println("Initialize system");
 
   resetOledDisplay();
   initializeOledDisplay();
