@@ -22,3 +22,10 @@ The aim of this project is to record the temperatures of the individual units in
 
 ![Housing](doc/housing.png)
 ![Cover](doc/housing-cover.png)
+
+## Sensor data targets
+
+- https://www.datagekko.com
+- https://iotplotter.com
+- https://iotguru.live
+- https://thingspeak.com
