@@ -16,7 +16,7 @@ The aim of this project is to record the temperatures of the individual units in
 - [sandeepmistry - arduino-LoRa](https://github.com/sandeepmistry/arduino-LoRa)
 - [adafruit - Adafruit_BME280](https://github.com/adafruit/Adafruit_BME280_Library)
 - [adafruit - Adafruit_SSD1306](https://github.com/adafruit/Adafruit_SSD1306)
-
+- [esp8266 - ESP8266HTTPClient](https://github.com/esp8266/Arduino/tree/master/libraries/ESP8266HTTPClient)
 
 ## Housing
 
