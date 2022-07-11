@@ -32,7 +32,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
 #define BAND    868E6
 
 //Identifier
-#define MODULE_IDENTIFIER "LSM2" //Lora Sensor Module 1
+#define MODULE_IDENTIFIER "LSM1" //Lora Sensor Module 1
 
 //Sensor config
 #define ROLLING_AVERAGE_DATAPOINT_NUMBER 100
@@ -47,6 +47,7 @@ double averageHumidity;
 double lastSentTemperature;
 double lastSentHumidity;
 
+char temperatureRounded[4];
 unsigned int loopCounter;
 
 void displaySmallText(int positionX, int positionY, String text) {
@@ -120,8 +121,8 @@ void initializeLoRa() {
 void initializeTemperatureSensor() {
   display.clearDisplay();
   displaySmallText(0, 0, "Initialize");
-  displayLargeText(0, 20, "TH");
-  displayNormalText(40, 28, "Sensor");
+  displayLargeText(0, 20, "T+H");
+  displayNormalText(56, 28, "Sensor");
   display.display();
   
   //Set Pins for BME280 Sensor
@@ -131,6 +132,16 @@ void initializeTemperatureSensor() {
     Serial.println(F("Could not find a valid BME280 sensor, check wiring!"));
     while (1);
   }
+
+  //The sensor requires special protection so that it does not falsify the measurement data due to its own heat
+  bme.setSampling(Adafruit_BME280::MODE_FORCED,   //Query the sensor data only on command
+                    Adafruit_BME280::SAMPLING_X1, //Temperature
+                    Adafruit_BME280::SAMPLING_X1, //Pressure
+                    Adafruit_BME280::SAMPLING_X1, //Humidity
+                    Adafruit_BME280::FILTER_X2);  //Specifies how many samples are required until in the case of an abrupt change in the measured value the data output has followed at least 75% of the change
+
+  bme.takeForcedMeasurement();
+  Serial.println(bme.getTemperatureCompensation());
 
   averageTemperature = bme.readTemperature();
   averageHumidity = bme.readHumidity();
@@ -170,6 +181,7 @@ void setup() {
 }
 
 void loop() {
+  bme.takeForcedMeasurement();
   temperature = bme.readTemperature();
   humidity = bme.readHumidity();
   pressure = bme.readPressure() / 100.0F;
@@ -196,8 +208,9 @@ void loop() {
   Serial.println("Pressure:" + String(pressure / 100.0F));
 
   display.clearDisplay();
-  displayExtraLargeText(0, 15, String(temperature));
-  displayNormalText(116, 0, "o");
+  dtostrf(temperature, 2, 1, temperatureRounded);
+  displayExtraLargeText(0, 15, String(temperatureRounded));
+  displayNormalText(100, 0, "o");
   displaySmallText(0, 52, "Humidity: " + String(averageHumidity) + "%");
   display.display();
 
