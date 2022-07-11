@@ -1,9 +1,22 @@
+//Secrets
+#include "arduino_secrets.h"
+
 //Libraries for LORA
 #include <SPI.h>
 #include "LoRa.h"
 
 //Libraries for WLAN
 #include <WiFi.h>
+
+//Prepare WLAN (please enter your sensitive data in the tab -> arduino_secrets.h)
+const char* ssid = SECRET_WLAN_SSID;
+const char* password = SECRET_WLAN_PASS;
+
+//Libraries for WebRequests
+#include <HTTPClient.h>
+
+//Prepare HttpClient
+HTTPClient httpClient;
 
 //Libraries for OLED Display SSD1306
 #include <Adafruit_GFX.h>
@@ -20,10 +33,6 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
 
 //Prepare LORA
 #define BAND    868E6
-
-//Prepare WLAN
-const char* ssid = "xxxxxx"; //replace "xxxxxx" with your WIFI's ssid
-const char* password = "xxxxxx"; //replace "xxxxxx" with your WIFI's password
 
 unsigned int receiveCounter;
 
@@ -144,6 +153,8 @@ void setup() {
   initializeWLAN();
 }
 
+String LoRaData;
+
 void loop() {
   display.clearDisplay();
   
@@ -158,12 +169,41 @@ void loop() {
 
     // read packet
     while (LoRa.available()) {
-      Serial.print((char)LoRa.read());
+      LoRaData = LoRa.readString();
     }
 
     // print RSSI of packet
     Serial.print("' with RSSI ");
     Serial.println(LoRa.packetRssi());
+
+    String httpRequestData = "api_key=1234&data=" + LoRaData;
+    httpClient.setConnectTimeout(2000);
+    httpClient.begin("https://webhook.site/8c40886b-b322-4e11-be43-9107ae30b187");
+    httpClient.setTimeout(5000); //5 seconds
+    int httpCode = httpClient.POST(httpRequestData);
+    if (httpCode == HTTPC_ERROR_SEND_HEADER_FAILED) {
+      Serial.println(F("HTTPC_ERROR_SEND_HEADER_FAILED"));
+    } else if (httpCode == HTTPC_ERROR_SEND_PAYLOAD_FAILED) {
+      Serial.println(F("HTTPC_ERROR_SEND_PAYLOAD_FAILED"));
+    } else if (httpCode == HTTPC_ERROR_NOT_CONNECTED) {
+      Serial.println(F("HTTPC_ERROR_NOT_CONNECTED"));
+    } else if (httpCode == HTTPC_ERROR_CONNECTION_LOST) {
+      Serial.println(F("HTTPC_ERROR_CONNECTION_LOST"));
+    } else if (httpCode == HTTPC_ERROR_NO_STREAM) {
+      Serial.println(F("HTTPC_ERROR_NO_STREAM"));
+    } else if (httpCode == HTTPC_ERROR_NO_HTTP_SERVER) {
+      Serial.println(F("HTTPC_ERROR_NO_HTTP_SERVER"));
+    } else if (httpCode == HTTPC_ERROR_TOO_LESS_RAM) {
+      Serial.println(F("HTTPC_ERROR_TOO_LESS_RAM"));
+    } else if (httpCode == HTTPC_ERROR_ENCODING) {
+      Serial.println(F("HTTPC_ERROR_ENCODING"));
+    } else if (httpCode == HTTPC_ERROR_STREAM_WRITE) {
+      Serial.println(F("HTTPC_ERROR_STREAM_WRITE"));
+    } else if (httpCode == HTTPC_ERROR_READ_TIMEOUT) {
+      Serial.println(F("HTTPC_ERROR_READ_TIMEOUT"));
+    }
+    httpClient.end();
+    Serial.println(httpCode);
   } else {
     displaySmallText(0, 0, "Received packages");
     displayLargeText(0, 20, String(receiveCounter));
