@@ -38,6 +38,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
 #define BAND    868E6
 
 unsigned int receiveCounter;
+String receivedData;
 
 void displaySmallText(int positionX, int positionY, String text) {
   display.setTextColor(WHITE);
@@ -108,6 +109,8 @@ void initializeLoRa() {
 }
 
 void initializeWLAN() {
+  Serial.print(F("Initialize WLAN"));
+  
   display.clearDisplay();
   displaySmallText(0, 0, "Initialize");
   displayLargeText(0, 20, "WLAN");
@@ -129,6 +132,8 @@ void initializeWLAN() {
     delay(500);
     Serial.print(".");
   }
+
+  Serial.println();
 
   if (WiFi.status() == WL_CONNECTED) {
     displaySmallText(0, 44, "Connected");
@@ -155,19 +160,97 @@ void showLogo() {
   delay(2000);
 }
 
+void sendWebRequest(String graphName, String temperature) {
+  //String httpRequestData = "api_key=1234&data=" + LoRaData;
+  String httpRequestData = "0," + graphName + "," + temperature;
+  Serial.println(httpRequestData);
+  
+  httpClient.setConnectTimeout(2000);
+  //httpClient.begin("https://webhook.site/0efed743-b2a2-458d-a09e-7c703143c03a");
+  httpClient.begin("http://iotplotter.com/api/v2/feed/831079989972422411.csv");
+  httpClient.addHeader("api-key", "");
+  httpClient.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  httpClient.setTimeout(5000); //5 seconds
+  int httpCode = httpClient.POST(httpRequestData);
+  analyzeSystemHttpCodes(httpCode);  
+  httpClient.end();
+  
+  Serial.println(httpCode);
+}
+
+void analyzeSystemHttpCodes(int httpCode) {
+  if (httpCode == HTTPC_ERROR_SEND_HEADER_FAILED) {
+    Serial.println(F("HTTPC_ERROR_SEND_HEADER_FAILED"));
+  } else if (httpCode == HTTPC_ERROR_SEND_PAYLOAD_FAILED) {
+    Serial.println(F("HTTPC_ERROR_SEND_PAYLOAD_FAILED"));
+  } else if (httpCode == HTTPC_ERROR_NOT_CONNECTED) {
+    Serial.println(F("HTTPC_ERROR_NOT_CONNECTED"));
+  } else if (httpCode == HTTPC_ERROR_CONNECTION_LOST) {
+    Serial.println(F("HTTPC_ERROR_CONNECTION_LOST"));
+  } else if (httpCode == HTTPC_ERROR_NO_STREAM) {
+    Serial.println(F("HTTPC_ERROR_NO_STREAM"));
+  } else if (httpCode == HTTPC_ERROR_NO_HTTP_SERVER) {
+    Serial.println(F("HTTPC_ERROR_NO_HTTP_SERVER"));
+  } else if (httpCode == HTTPC_ERROR_TOO_LESS_RAM) {
+    Serial.println(F("HTTPC_ERROR_TOO_LESS_RAM"));
+  } else if (httpCode == HTTPC_ERROR_ENCODING) {
+    Serial.println(F("HTTPC_ERROR_ENCODING"));
+  } else if (httpCode == HTTPC_ERROR_STREAM_WRITE) {
+    Serial.println(F("HTTPC_ERROR_STREAM_WRITE"));
+  } else if (httpCode == HTTPC_ERROR_READ_TIMEOUT) {
+    Serial.println(F("HTTPC_ERROR_READ_TIMEOUT"));
+  }
+}
+
+void parseAndProcessReceivedData() {
+  unsigned int index = 0;
+  
+  char str[20] = { 0 };
+  const char *delim = "#";
+  char *token = NULL;
+
+  receivedData.toCharArray(str, receivedData.length());
+
+  String graphName = "";
+  String temperature = "";
+
+  token = strtok(str, delim);
+  graphName = token;
+  while (token) {
+    //Serial.println(index);
+    //Serial.println(token);
+    token = strtok(NULL, delim);
+
+    if (token == NULL) {
+      break;
+    }
+
+    if (token[0] == 't') {
+      String temp = String(token);
+      temperature = temp.substring(2);
+    }
+    
+    index++;
+  }
+
+  sendWebRequest(graphName, temperature);
+}
+
 void setup() {
   //Prepare Serial connection
   Serial.begin(115200);
   Serial.println("Initialize system");
-
+  
   resetOledDisplay();
   initializeOledDisplay();
   showLogo();
   initializeLoRa();
   initializeWLAN();
-}
 
-String LoRaData;
+  //Only for testing
+  //receivedData = "LSM2#t:25.37#h:53.62";
+  //parseAndProcessReceivedData();
+}
 
 void loop() {
   display.clearDisplay();
@@ -183,41 +266,14 @@ void loop() {
 
     // read packet
     while (LoRa.available()) {
-      LoRaData = LoRa.readString();
+      receivedData = LoRa.readString();
     }
+
+    parseAndProcessReceivedData();
 
     // print RSSI of packet
     Serial.print("' with RSSI ");
     Serial.println(LoRa.packetRssi());
-
-    String httpRequestData = "api_key=1234&data=" + LoRaData;
-    httpClient.setConnectTimeout(2000);
-    httpClient.begin("https://webhook.site/8c40886b-b322-4e11-be43-9107ae30b187");
-    httpClient.setTimeout(5000); //5 seconds
-    int httpCode = httpClient.POST(httpRequestData);
-    if (httpCode == HTTPC_ERROR_SEND_HEADER_FAILED) {
-      Serial.println(F("HTTPC_ERROR_SEND_HEADER_FAILED"));
-    } else if (httpCode == HTTPC_ERROR_SEND_PAYLOAD_FAILED) {
-      Serial.println(F("HTTPC_ERROR_SEND_PAYLOAD_FAILED"));
-    } else if (httpCode == HTTPC_ERROR_NOT_CONNECTED) {
-      Serial.println(F("HTTPC_ERROR_NOT_CONNECTED"));
-    } else if (httpCode == HTTPC_ERROR_CONNECTION_LOST) {
-      Serial.println(F("HTTPC_ERROR_CONNECTION_LOST"));
-    } else if (httpCode == HTTPC_ERROR_NO_STREAM) {
-      Serial.println(F("HTTPC_ERROR_NO_STREAM"));
-    } else if (httpCode == HTTPC_ERROR_NO_HTTP_SERVER) {
-      Serial.println(F("HTTPC_ERROR_NO_HTTP_SERVER"));
-    } else if (httpCode == HTTPC_ERROR_TOO_LESS_RAM) {
-      Serial.println(F("HTTPC_ERROR_TOO_LESS_RAM"));
-    } else if (httpCode == HTTPC_ERROR_ENCODING) {
-      Serial.println(F("HTTPC_ERROR_ENCODING"));
-    } else if (httpCode == HTTPC_ERROR_STREAM_WRITE) {
-      Serial.println(F("HTTPC_ERROR_STREAM_WRITE"));
-    } else if (httpCode == HTTPC_ERROR_READ_TIMEOUT) {
-      Serial.println(F("HTTPC_ERROR_READ_TIMEOUT"));
-    }
-    httpClient.end();
-    Serial.println(httpCode);
   } else {
     displaySmallText(0, 0, "Received packages");
     displayLargeText(0, 20, String(receiveCounter));
