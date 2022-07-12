@@ -1,5 +1,8 @@
 //Secrets
-#include "arduino_secrets.h"
+#include "secrets.h"
+
+//Bitmaps
+#include "bitmaps.h"
 
 //Libraries for LORA
 #include <SPI.h>
@@ -142,6 +145,16 @@ void initializeWLAN() {
   }
 }
 
+void showLogo() {
+  display.clearDisplay();
+  display.drawBitmap(
+    (display.width()  - BOOT_LOGO_WIDTH ) / 2,
+    (display.height() - BOOT_LOGO_HEIGHT) / 2,
+    bitmap_nager, BOOT_LOGO_WIDTH, BOOT_LOGO_HEIGHT, 1);
+  display.display();
+  delay(2000);
+}
+
 void setup() {
   //Prepare Serial connection
   Serial.begin(115200);
@@ -149,6 +162,7 @@ void setup() {
 
   resetOledDisplay();
   initializeOledDisplay();
+  showLogo();
   initializeLoRa();
   initializeWLAN();
 }
