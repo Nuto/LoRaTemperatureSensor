@@ -29,3 +29,4 @@ The aim of this project is to record the temperatures of the individual units in
 - https://iotplotter.com
 - https://iotguru.live
 - https://thingspeak.com
+- https://thingsboard.io
