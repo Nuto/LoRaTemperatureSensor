@@ -1,3 +1,9 @@
+//Bitmaps
+#include "bitmaps.h"
+
+//Libraries for Permanent memory
+#include <Preferences.h>
+
 //Libraries for LoRa
 #include <SPI.h>
 #include "LoRa.h"
@@ -11,6 +17,9 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
+//Prepare Permanent memory
+Preferences preferences;
+
 //Prepare BME280 Sensor
 #define SDA 21
 #define SCL 22
@@ -20,8 +29,8 @@ Adafruit_BME280 bme;
 TwoWire I2Cone = TwoWire(1);
 
 //Prepare OLED Display SSD1306
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+#define SCREEN_WIDTH 128 //OLED display width, in pixels
+#define SCREEN_HEIGHT 64 //OLED display height, in pixels
 #define OLED_SDA 4
 #define OLED_SCL 15
 #define OLED_RST 16
@@ -31,24 +40,24 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
 //Prepare LoRa
 #define BAND    868E6
 
-//Identifier
-#define MODULE_IDENTIFIER "LSM1" //Lora Sensor Module 1
-
 //Sensor config
 #define ROLLING_AVERAGE_DATAPOINT_NUMBER 100
 
-double temperature;
-double humidity;
-double pressure;
+float temperature;
+float humidity;
+float pressure;
 
-double averageTemperature;
-double averageHumidity;
+float averageTemperature;
+float averageHumidity;
 
-double lastSentTemperature;
-double lastSentHumidity;
+float lastSentTemperature;
+float lastSentHumidity;
 
 char temperatureRounded[4];
 unsigned int loopCounter;
+
+char* moduleUniqueidentifierKey = "muid";
+String moduleUniqueidentifier;
 
 void displaySmallText(int positionX, int positionY, String text) {
   display.setTextColor(WHITE);
@@ -83,6 +92,40 @@ void resetOledDisplay() {
   digitalWrite(OLED_RST, LOW);
   delay(20);
   digitalWrite(OLED_RST, HIGH);
+}
+
+bool loadConfiguration() {
+  preferences.begin("config", true);
+ 
+  if (!preferences.isKey(moduleUniqueidentifierKey)) {
+    preferences.end();
+    
+    return false;
+  }
+
+  moduleUniqueidentifier = preferences.getString(moduleUniqueidentifierKey, "");
+  preferences.end();
+  
+  return true;
+}
+
+void setConfiguration() {
+  Serial.println("Start configuration mode, please set ModuleUniqueidentifier");
+  while (!Serial.available()) {
+    Serial.print(".");
+    delay(50);
+  }
+
+  String uniqueidentifier = Serial.readString();
+  Serial.println(uniqueidentifier);
+
+  preferences.begin("config", false);
+  preferences.putString(moduleUniqueidentifierKey, uniqueidentifier);
+  preferences.end();
+
+  delay(100);
+
+  ESP.restart();
 }
 
 void initializeOledDisplay() {
@@ -141,7 +184,11 @@ void initializeTemperatureSensor() {
                     Adafruit_BME280::FILTER_X2);  //Specifies how many samples are required until in the case of an abrupt change in the measured value the data output has followed at least 75% of the change
 
   bme.takeForcedMeasurement();
+  Serial.print("TemperatureCompensation: ");
   Serial.println(bme.getTemperatureCompensation());
+
+  //Set value from config
+  bme.setTemperatureCompensation(-0.5F);
 
   averageTemperature = bme.readTemperature();
   averageHumidity = bme.readHumidity();
@@ -152,10 +199,20 @@ void initializeTemperatureSensor() {
 void showModuleInfo() {
   display.clearDisplay();
   displaySmallText(0, 0, "Module Identifier");
-  displayLargeText(0, 20, MODULE_IDENTIFIER);
+  displayLargeText(0, 20, moduleUniqueidentifier);
   display.display();
   
   delay(3000);
+}
+
+void showLogo() {
+  display.clearDisplay();
+  display.drawBitmap(
+    (display.width()  - BOOT_LOGO_WIDTH ) / 2,
+    (display.height() - BOOT_LOGO_HEIGHT) / 2,
+    bitmap_nager, BOOT_LOGO_WIDTH, BOOT_LOGO_HEIGHT, 1);
+  display.display();
+  delay(2000);
 }
 
 double calculateAverageTemperature (double currentTemperature) {
@@ -172,15 +229,36 @@ void setup() {
   //Prepare Serial connection
   Serial.begin(115200);
   Serial.println("Initialize system");
-
+  
+  if (!loadConfiguration()) {
+    setConfiguration();
+  }
+  
   resetOledDisplay();
   initializeOledDisplay();
+  showLogo();
   showModuleInfo();
   initializeLoRa();
   initializeTemperatureSensor();
 }
 
 void loop() {
+
+ if (Serial.available() > 0) {
+  String command = Serial.readString();
+  if (command == "reset") {
+    ESP.restart();
+  }
+  
+  if (command.startsWith("set")) {
+    Serial.print(command);
+
+    preferences.begin("config", false);
+    preferences.putString(moduleUniqueidentifierKey, "test123"); //split command and save only data part
+    preferences.end();
+  }
+ }
+  
   bme.takeForcedMeasurement();
   temperature = bme.readTemperature();
   humidity = bme.readHumidity();
@@ -190,13 +268,20 @@ void loop() {
   calculateAverageHumidity(humidity);
 
   if (loopCounter % 20 == 0 || loopCounter == 0)
-  {
+  {    
     int differenceTemperature = abs((lastSentTemperature - averageTemperature) * 100);
-    Serial.println("Diff = " + String(differenceTemperature) + " (" + String(lastSentTemperature) + "/" + String(averageTemperature) + ")");
+    Serial.print("Temperature Difference:" + String(differenceTemperature));
+    Serial.print(" (");
+    Serial.print(lastSentTemperature * 100, 4);
+    Serial.print("/");
+    Serial.print(averageTemperature * 100, 4);
+    Serial.println(")");
+    
     if (differenceTemperature > 10)
     {
+      Serial.println("Send temperature via LoRa");
       LoRa.beginPacket();
-      LoRa.print(String(MODULE_IDENTIFIER) + "#t:" + String(temperature) + "#h:" + String(humidity));
+      LoRa.print(moduleUniqueidentifier + "#t:" + String(temperature) + "#h:" + String(humidity));
       LoRa.endPacket();
 
       lastSentTemperature = averageTemperature;
