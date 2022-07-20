@@ -1,9 +1,6 @@
 //Bitmaps
 #include "bitmaps.h"
 
-//Libraries for Permanent memory
-#include <Preferences.h>
-
 //Libraries for LoRa
 #include <SPI.h>
 #include "LoRa.h"
@@ -13,12 +10,11 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 
-//Libraries for OLED Display SSD1306
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+//Display
+#include "display.h"
 
-//Prepare Permanent memory
-Preferences preferences;
+//Configuration
+#include "configuration.h"
 
 //Prepare BME280 Sensor
 #define SDA 21
@@ -27,15 +23,6 @@ Preferences preferences;
 Adafruit_BME280 bme;
 //Prepare a second I2C wire for Sensor
 TwoWire I2Cone = TwoWire(1);
-
-//Prepare OLED Display SSD1306
-#define SCREEN_WIDTH 128 //OLED display width, in pixels
-#define SCREEN_HEIGHT 64 //OLED display height, in pixels
-#define OLED_SDA 4
-#define OLED_SCL 15
-#define OLED_RST 16
-
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
 
 //Prepare LoRa
 #define BAND    868E6
@@ -56,96 +43,14 @@ float lastSentHumidity;
 char temperatureRounded[4];
 unsigned int loopCounter;
 
-char* moduleUniqueidentifierKey = "muid";
 String moduleUniqueidentifier;
-
-void displaySmallText(int positionX, int positionY, String text) {
-  display.setTextColor(WHITE);
-  display.setCursor(positionX, positionY);
-  display.setTextSize(1);
-  display.print(text);
-}
-
-void displayNormalText(int positionX, int positionY, String text) {
-  display.setTextColor(WHITE);
-  display.setCursor(positionX, positionY);
-  display.setTextSize(2);
-  display.print(text);
-}
-
-void displayLargeText(int positionX, int positionY, String text) {
-  display.setTextColor(WHITE);
-  display.setCursor(positionX, positionY);
-  display.setTextSize(3);
-  display.print(text);
-}
-
-void displayExtraLargeText(int positionX, int positionY, String text) {
-  display.setTextColor(WHITE);
-  display.setCursor(positionX, positionY);
-  display.setTextSize(4);
-  display.print(text);
-}
-
-void resetOledDisplay() {
-  pinMode(OLED_RST, OUTPUT);
-  digitalWrite(OLED_RST, LOW);
-  delay(20);
-  digitalWrite(OLED_RST, HIGH);
-}
-
-bool loadConfiguration() {
-  preferences.begin("config", true);
- 
-  if (!preferences.isKey(moduleUniqueidentifierKey)) {
-    preferences.end();
-    
-    return false;
-  }
-
-  moduleUniqueidentifier = preferences.getString(moduleUniqueidentifierKey, "");
-  preferences.end();
-  
-  return true;
-}
-
-void setConfiguration() {
-  Serial.println("Start configuration mode, please set ModuleUniqueidentifier");
-  while (!Serial.available()) {
-    Serial.print(".");
-    delay(50);
-  }
-
-  String uniqueidentifier = Serial.readString();
-  Serial.println(uniqueidentifier);
-
-  preferences.begin("config", false);
-  preferences.putString(moduleUniqueidentifierKey, uniqueidentifier);
-  preferences.end();
-
-  delay(100);
-
-  ESP.restart();
-}
-
-void initializeOledDisplay() {
-  Serial.println(F("Initialize SSD1306 display"));
-  //Open connection to Display
-  Wire.begin(OLED_SDA, OLED_SCL);
-
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3c, false, false)) { // Address 0x3C for 128x32
-    Serial.println(F("SSD1306 allocation failed"));
-    while (1);
-  }
-
-  display.setRotation(2); //Rotate 180°
-}
+float temperatureCompensation;
 
 void initializeLoRa() {
-  display.clearDisplay();
+  displayClear();
   displaySmallText(0, 0, "Initialize");
   displayLargeText(0, 20, "LoRa");
-  display.display();
+  displayDraw();
 
   Serial.println(F("Initialize LoRa"));
   SPI.begin(SCK,MISO,MOSI,SS);
@@ -162,11 +67,11 @@ void initializeLoRa() {
 }
 
 void initializeTemperatureSensor() {
-  display.clearDisplay();
+  displayClear();
   displaySmallText(0, 0, "Initialize");
   displayLargeText(0, 20, "T+H");
   displayNormalText(56, 28, "Sensor");
-  display.display();
+  displayDraw();
   
   //Set Pins for BME280 Sensor
   I2Cone.begin(SDA, SCL, 100000); 
@@ -184,11 +89,13 @@ void initializeTemperatureSensor() {
                     Adafruit_BME280::FILTER_X2);  //Specifies how many samples are required until in the case of an abrupt change in the measured value the data output has followed at least 75% of the change
 
   bme.takeForcedMeasurement();
-  Serial.print("TemperatureCompensation: ");
-  Serial.println(bme.getTemperatureCompensation());
 
   //Set value from config
-  bme.setTemperatureCompensation(-0.5F);
+  float temperatureCompensation = getTemperatureCompensation();
+  bme.setTemperatureCompensation(temperatureCompensation);
+
+  Serial.print("TemperatureCompensation: ");
+  Serial.println(temperatureCompensation);
 
   averageTemperature = bme.readTemperature();
   averageHumidity = bme.readHumidity();
@@ -197,22 +104,36 @@ void initializeTemperatureSensor() {
 }
 
 void showModuleInfo() {
-  display.clearDisplay();
+  displayClear();
   displaySmallText(0, 0, "Module Identifier");
   displayLargeText(0, 20, moduleUniqueidentifier);
-  display.display();
+  displayDraw();
   
   delay(3000);
 }
 
 void showLogo() {
-  display.clearDisplay();
-  display.drawBitmap(
-    (display.width()  - BOOT_LOGO_WIDTH ) / 2,
-    (display.height() - BOOT_LOGO_HEIGHT) / 2,
-    bitmap_nager, BOOT_LOGO_WIDTH, BOOT_LOGO_HEIGHT, 1);
-  display.display();
+  displayClear();
+  displayLogo();
+  displayDraw();
   delay(2000);
+}
+
+void setConfiguration() {
+  //TODO: set display text "set configuration via serial"
+  
+  while (!Serial.available()) {
+    Serial.println(F("Configuration mode active, please set ModuleUniqueidentifier via 'config.muid=XXX'"));
+    delay(2000);
+  }
+
+  String uniqueidentifier = Serial.readString();
+  Serial.println(uniqueidentifier);
+
+  setModuleUniqueidentifier(uniqueidentifier);
+
+  delay(100);
+  ESP.restart();
 }
 
 double calculateAverageTemperature (double currentTemperature) {
@@ -229,8 +150,9 @@ void setup() {
   //Prepare Serial connection
   Serial.begin(115200);
   Serial.println("Initialize system");
-  
-  if (!loadConfiguration()) {
+
+  moduleUniqueidentifier = getModuleUniqueidentifier();
+  if (moduleUniqueidentifier.length() == 0) {
     setConfiguration();
   }
   
@@ -246,16 +168,25 @@ void loop() {
 
  if (Serial.available() > 0) {
   String command = Serial.readString();
-  if (command == "reset") {
+  if (command.equalsIgnoreCase("reset")) {
     ESP.restart();
   }
   
-  if (command.startsWith("set")) {
-    Serial.print(command);
+  if (command.startsWith("config.muid=")) {
+    Serial.println("set muid config");
+    String value = command.substring(12);
 
-    preferences.begin("config", false);
-    preferences.putString(moduleUniqueidentifierKey, "test123"); //split command and save only data part
-    preferences.end();
+    setModuleUniqueidentifier(value);
+  }
+
+  if (command.startsWith("config.tc=")) {
+    Serial.println("set tc config");
+    String value = command.substring(10);
+
+    temperatureCompensation = value.toFloat();
+
+    setTemperatureCompensation(temperatureCompensation);
+    bme.setTemperatureCompensation(temperatureCompensation);
   }
  }
   
@@ -292,12 +223,12 @@ void loop() {
   Serial.print("Humidity:" + String(humidity) + ", ");
   Serial.println("Pressure:" + String(pressure / 100.0F));
 
-  display.clearDisplay();
+  displayClear();
   dtostrf(temperature, 2, 1, temperatureRounded);
   displayExtraLargeText(0, 15, String(temperatureRounded));
   displayNormalText(100, 0, "o");
   displaySmallText(0, 52, "Humidity: " + String(averageHumidity) + "%");
-  display.display();
+  displayDraw();
 
   loopCounter++;
   delay(1000);
