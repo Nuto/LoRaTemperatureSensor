@@ -11,6 +11,9 @@
 //Libraries for WLAN
 #include <WiFi.h>
 
+//Display
+#include "display.h"
+
 //Prepare WLAN (please enter your sensitive data in the tab -> arduino_secrets.h)
 const char* ssid = SECRET_WLAN_SSID;
 const char* password = SECRET_WLAN_PASS;
@@ -21,78 +24,19 @@ const char* password = SECRET_WLAN_PASS;
 //Prepare HttpClient
 HTTPClient httpClient;
 
-//Libraries for OLED Display SSD1306
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-
-//Prepare OLED Display SSD1306
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
-#define OLED_SDA 4
-#define OLED_SCL 15
-#define OLED_RST 16
-
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
-
 //Prepare LORA
 #define BAND    868E6
 
 unsigned int receiveCounter;
 String receivedData;
 
-void displaySmallText(int positionX, int positionY, String text) {
-  display.setTextColor(WHITE);
-  display.setCursor(positionX, positionY);
-  display.setTextSize(1);
-  display.print(text);
-}
-
-void displayNormalText(int positionX, int positionY, String text) {
-  display.setTextColor(WHITE);
-  display.setCursor(positionX, positionY);
-  display.setTextSize(2);
-  display.print(text);
-}
-
-void displayLargeText(int positionX, int positionY, String text) {
-  display.setTextColor(WHITE);
-  display.setCursor(positionX, positionY);
-  display.setTextSize(3);
-  display.print(text);
-}
-
-void displayExtraLargeText(int positionX, int positionY, String text) {
-  display.setTextColor(WHITE);
-  display.setCursor(positionX, positionY);
-  display.setTextSize(4);
-  display.print(text);
-}
-
-void resetOledDisplay() {
-  pinMode(OLED_RST, OUTPUT);
-  digitalWrite(OLED_RST, LOW);
-  delay(20);
-  digitalWrite(OLED_RST, HIGH);
-}
-
-void initializeOledDisplay() {
-  Serial.println(F("Initialize SSD1306 display"));
-  //Open connection to Display
-  Wire.begin(OLED_SDA, OLED_SCL);
-
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3c, false, false)) { // Address 0x3C for 128x32
-    Serial.println(F("SSD1306 allocation failed"));
-    while (1);
-  }
-
-  display.setRotation(2); //Rotate 180°
-}
+unsigned int failureCounter;
 
 void initializeLoRa() {
-  display.clearDisplay();
+  displayClear();
   displaySmallText(0, 0, "Initialize");
   displayLargeText(0, 20, "LoRa");
-  display.display();
+  displayDraw();
 
   Serial.println(F("Initialize LoRa"));
   SPI.begin(SCK,MISO,MOSI,SS);
@@ -104,6 +48,12 @@ void initializeLoRa() {
   }
   LoRa.setSpreadingFactor(12);
   LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN);
+  
+  //LoRa.setSpreadingFactor(8);
+  //LoRa.setTxPower(17, PA_OUTPUT_PA_BOOST_PIN);
+  LoRa.setSignalBandwidth(250E3); //7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3, and 250E3.
+  //LoRa.setCodingRate4(8); //ranges from 5-8, default 5
+  //LoRa.setSyncWord(0x34); //ranges from 0-0xFF, default 0x34, see API docs
 
   delay(500);
 }
@@ -111,10 +61,10 @@ void initializeLoRa() {
 void initializeWLAN() {
   Serial.print(F("Initialize WLAN"));
   
-  display.clearDisplay();
+  displayClear();
   displaySmallText(0, 0, "Initialize");
   displayLargeText(0, 20, "WLAN");
-  display.display();
+  displayDraw();
 
   WiFi.disconnect(true);
   delay(1000);
@@ -137,13 +87,13 @@ void initializeWLAN() {
 
   if (WiFi.status() == WL_CONNECTED) {
     displaySmallText(0, 44, "Connected");
-    display.display();
+    displayDraw();
     delay(1000);
 
     return;
   } else {
     displaySmallText(0, 44, "Cannot connect");
-    display.display();
+    displayDraw();
 
     Serial.println(F("WLAN initialization failed!"));
     while (1);
@@ -151,19 +101,14 @@ void initializeWLAN() {
 }
 
 void showLogo() {
-  display.clearDisplay();
-  display.drawBitmap(
-    (display.width()  - BOOT_LOGO_WIDTH ) / 2,
-    (display.height() - BOOT_LOGO_HEIGHT) / 2,
-    bitmap_nager, BOOT_LOGO_WIDTH, BOOT_LOGO_HEIGHT, 1);
-  display.display();
+  displayClear();
+  displayLogo();
+  displayDraw();
   delay(2000);
 }
 
 void sendWebRequest(String graphName, String temperature) {
-  //String httpRequestData = "api_key=1234&data=" + LoRaData;
   String httpRequestData = "0," + graphName + "," + temperature;
-  Serial.println(httpRequestData);
   
   httpClient.setConnectTimeout(2000);
   //httpClient.begin("https://webhook.site/0efed743-b2a2-458d-a09e-7c703143c03a");
@@ -174,8 +119,11 @@ void sendWebRequest(String graphName, String temperature) {
   int httpCode = httpClient.POST(httpRequestData);
   analyzeSystemHttpCodes(httpCode);  
   httpClient.end();
-  
-  Serial.println(httpCode);
+
+  Serial.println("iotplotter.com response code:" + String(httpCode) + ", Send Data(" + httpRequestData + ")");
+  if (httpCode != 200) {
+    failureCounter++;
+  }
 }
 
 void analyzeSystemHttpCodes(int httpCode) {
@@ -247,38 +195,46 @@ void setup() {
   initializeLoRa();
   initializeWLAN();
 
+  Serial.println("System is ready");
+
   //Only for testing
   //receivedData = "LSM2#t:25.37#h:53.62";
   //parseAndProcessReceivedData();
 }
 
 void loop() {
-  display.clearDisplay();
+  displayClear();
   
   int packetSize = LoRa.parsePacket();
   if (packetSize) {
     receiveCounter++;
+    
     displayNormalText(0, 8, "package");
     displayNormalText(0, 25, "received");
     
-    // received a packet
-    Serial.print("Received packet '");
-
-    // read packet
+    //Read data
+    int readIteration = 0;
     while (LoRa.available()) {
       receivedData = LoRa.readString();
+      readIteration++;
     }
 
-    parseAndProcessReceivedData();
-
-    // print RSSI of packet
+    //Print packet infos
+    Serial.print("Receive i:'");
+    Serial.print(readIteration);
+    Serial.print(", data:'");
+    Serial.print(receivedData);
     Serial.print("' with RSSI ");
     Serial.println(LoRa.packetRssi());
+
+    parseAndProcessReceivedData();
   } else {
     displaySmallText(0, 0, "Received packages");
-    displayLargeText(0, 20, String(receiveCounter));
+    displayLargeText(0, 14, String(receiveCounter));
+
+    displaySmallText(0, 44, "Failures: " + String(failureCounter));
   }
 
-  display.display();
+  displayDraw();
   delay(1000);
 }

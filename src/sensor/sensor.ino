@@ -62,6 +62,12 @@ void initializeLoRa() {
   }
   LoRa.setSpreadingFactor(12);
   LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN);
+  
+  //LoRa.setSpreadingFactor(8);
+  //LoRa.setTxPower(17, PA_OUTPUT_PA_BOOST_PIN);
+  LoRa.setSignalBandwidth(250E3); //7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3, and 250E3.
+  //LoRa.setCodingRate4(8); //ranges from 5-8, default 5
+  //LoRa.setSyncWord(0x34); //ranges from 0-0xFF, default 0x34, see API docs
 
   delay(500);
 }
@@ -162,6 +168,8 @@ void setup() {
   showModuleInfo();
   initializeLoRa();
   initializeTemperatureSensor();
+
+  Serial.println("System is ready");
 }
 
 void loop() {
