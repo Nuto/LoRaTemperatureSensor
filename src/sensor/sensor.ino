@@ -41,10 +41,17 @@ float lastSentTemperature;
 float lastSentHumidity;
 
 char temperatureRounded[4];
-unsigned int loopCounter;
 
 String moduleUniqueidentifier;
 float temperatureCompensation;
+
+unsigned long previousMillis = 0UL;
+unsigned long sensorInterval = 5000UL; //1s
+unsigned long transmitInterval = 10000UL; //10s
+
+void onTxDone() {
+  Serial.println("txDone " + String(millis()));
+}
 
 void initializeLoRa() {
   displayClear();
@@ -53,8 +60,12 @@ void initializeLoRa() {
   displayDraw();
 
   Serial.println(F("Initialize LoRa"));
-  SPI.begin(SCK,MISO,MOSI,SS);
-  LoRa.setPins(SS,RST_LoRa,DIO0);
+  SPI.begin(SCK, MISO, MOSI, SS);
+  LoRa.setPins(18, 14, 26);
+  //LoRa.setPins(SS,RST_LoRa,DIO0);
+  //Serial.println(SS);
+  //Serial.println(RST_LoRa);
+  //Serial.println(DIO0);
   if (!LoRa.begin(BAND))
   {
     Serial.println(F("LoRa initialization failed!"));
@@ -65,9 +76,11 @@ void initializeLoRa() {
   
   //LoRa.setSpreadingFactor(8);
   //LoRa.setTxPower(17, PA_OUTPUT_PA_BOOST_PIN);
-  LoRa.setSignalBandwidth(250E3); //7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3, and 250E3.
+  //LoRa.setSignalBandwidth(250E3); //7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3, and 250E3.
   //LoRa.setCodingRate4(8); //ranges from 5-8, default 5
   //LoRa.setSyncWord(0x34); //ranges from 0-0xFF, default 0x34, see API docs
+
+  LoRa.onTxDone(onTxDone);
 
   delay(500);
 }
@@ -152,9 +165,23 @@ double calculateAverageHumidity (double currentHumidity) {
   averageHumidity += currentHumidity / ROLLING_AVERAGE_DATAPOINT_NUMBER;
 }
 
+void sendLoraPackage() {
+  Serial.println("Send temperature via LoRa");
+  int isReady = LoRa.beginPacket();
+  Serial.println("isReady:" + String(isReady));
+  //LoRa.setTxPower(20, 0x80);
+  //Serial.println(PA_OUTPUT_PA_BOOST_PIN);
+  LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN);
+  LoRa.print(moduleUniqueidentifier + "#t:" + String(temperature) + "#h:" + String(humidity));
+  LoRa.endPacket();
+
+  lastSentTemperature = averageTemperature;
+}
+
 void setup() {
   //Prepare Serial connection
   Serial.begin(115200);
+  Serial.setTimeout(250);
   Serial.println("Initialize system");
 
   moduleUniqueidentifier = getModuleUniqueidentifier();
@@ -174,40 +201,65 @@ void setup() {
 
 void loop() {
 
- if (Serial.available() > 0) {
-  String command = Serial.readString();
-  if (command.equalsIgnoreCase("reset")) {
-    ESP.restart();
-  }
+  unsigned long currentMillis = millis();
+
+  if (Serial.available() > 0) {
+    Serial.println("serial input received");
+    String command = Serial.readString();
+    Serial.println("serial input readed");
+    if (command.equalsIgnoreCase("reset")) {
+      ESP.restart();
+    }
   
-  if (command.startsWith("config.muid=")) {
-    Serial.println("set muid config");
-    String value = command.substring(12);
-
-    setModuleUniqueidentifier(value);
-  }
-
-  if (command.startsWith("config.tc=")) {
-    Serial.println("set tc config");
-    String value = command.substring(10);
-
-    temperatureCompensation = value.toFloat();
-
-    setTemperatureCompensation(temperatureCompensation);
-    bme.setTemperatureCompensation(temperatureCompensation);
-  }
- }
+    if (command.equalsIgnoreCase("send")) {
+      sendLoraPackage();
+    }
+    
+    if (command.startsWith("config.muid=")) {
+      Serial.println("set muid config");
+      String value = command.substring(12);
   
-  bme.takeForcedMeasurement();
-  temperature = bme.readTemperature();
-  humidity = bme.readHumidity();
-  pressure = bme.readPressure() / 100.0F;
+      setModuleUniqueidentifier(value);
+    }
+  
+    if (command.startsWith("config.tc=")) {
+      Serial.println("set tc config");
+      String value = command.substring(10);
+  
+      temperatureCompensation = value.toFloat();
+  
+      setTemperatureCompensation(temperatureCompensation);
+      bme.setTemperatureCompensation(temperatureCompensation);
+    }
+  }
 
-  calculateAverageTemperature(temperature);
-  calculateAverageHumidity(humidity);
+  if (currentMillis - previousMillis > sensorInterval) {
+  
+    bme.takeForcedMeasurement();
+    temperature = bme.readTemperature();
+    humidity = bme.readHumidity();
+    pressure = bme.readPressure() / 100.0F;
+  
+    calculateAverageTemperature(temperature);
+    calculateAverageHumidity(humidity);
+  
+    Serial.print("Temperature:" + String(temperature) + ", ");
+    Serial.print("Humidity:" + String(humidity) + ", ");
+    Serial.println("Pressure:" + String(pressure / 100.0F));
+  
+    displayClear();
+    dtostrf(temperature, 2, 1, temperatureRounded);
+    displayExtraLargeText(0, 15, String(temperatureRounded));
+    displayNormalText(100, 0, "o");
+    displaySmallText(0, 52, "Humidity: " + String(averageHumidity) + "%");
+    displayDraw();
+  
+    previousMillis = currentMillis;
+  }
 
-  if (loopCounter % 20 == 0 || loopCounter == 0)
-  {    
+  if (currentMillis - previousMillis > transmitInterval) {
+    //TODO: Add second interval logic
+    
     int differenceTemperature = abs((lastSentTemperature - averageTemperature) * 100);
     Serial.print("Temperature Difference:" + String(differenceTemperature));
     Serial.print(" (");
@@ -216,28 +268,10 @@ void loop() {
     Serial.print(averageTemperature * 100, 4);
     Serial.println(")");
     
-    if (differenceTemperature > 10)
-    {
-      Serial.println("Send temperature via LoRa");
-      LoRa.beginPacket();
-      LoRa.print(moduleUniqueidentifier + "#t:" + String(temperature) + "#h:" + String(humidity));
-      LoRa.endPacket();
-
-      lastSentTemperature = averageTemperature;
-    }
+    //if (differenceTemperature > 10)
+    //{
+      sendLoraPackage();
+    //}
+    
   }
-
-  Serial.print("Temperature:" + String(temperature) + ", ");
-  Serial.print("Humidity:" + String(humidity) + ", ");
-  Serial.println("Pressure:" + String(pressure / 100.0F));
-
-  displayClear();
-  dtostrf(temperature, 2, 1, temperatureRounded);
-  displayExtraLargeText(0, 15, String(temperatureRounded));
-  displayNormalText(100, 0, "o");
-  displaySmallText(0, 52, "Humidity: " + String(averageHumidity) + "%");
-  displayDraw();
-
-  loopCounter++;
-  delay(1000);
 }
