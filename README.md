@@ -24,10 +24,11 @@ The closer to 0 the better the signal is, RSSI `minimum is -120dBm`.
 
 ## Used Software Packages
 
+- [espressif - arduino-esp32](https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json)
+  (httpclient is more up to date than like heltec)
 - [sandeepmistry - arduino-LoRa](https://github.com/sandeepmistry/arduino-LoRa)
 - [adafruit - Adafruit_BME280](https://github.com/adafruit/Adafruit_BME280_Library)
 - [adafruit - Adafruit_SSD1306](https://github.com/adafruit/Adafruit_SSD1306)
-- [arduino-libraries - ArduinoHttpClient](https://github.com/arduino-libraries/ArduinoHttpClient)
 
 ## Housing
 
