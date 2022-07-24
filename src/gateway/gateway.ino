@@ -27,10 +27,19 @@ HTTPClient httpClient;
 //Prepare LORA
 #define BAND    868E6
 
+unsigned long previousMillis = 0UL;
+unsigned long interval = 1000UL; //1s
+
 unsigned int receiveCounter;
 String receivedData;
+bool loraDataAvailable;
 
 unsigned int failureCounter;
+
+void onReceive(int packetSize) {
+  receiveCounter++;
+  loraDataAvailable = true;
+}
 
 void initializeLoRa() {
   displayClear();
@@ -39,8 +48,9 @@ void initializeLoRa() {
   displayDraw();
 
   Serial.println(F("Initialize LoRa"));
-  SPI.begin(SCK,MISO,MOSI,SS);
-  LoRa.setPins(SS,RST_LoRa,DIO0);
+  SPI.begin(SCK, MISO, MOSI, SS);
+  //LoRa.setPins(SS,RST_LoRa,DIO0);
+  LoRa.setPins(18, 14, 26);
   if (!LoRa.begin(BAND))
   {
     Serial.println(F("LoRa initialization failed!"));
@@ -51,9 +61,12 @@ void initializeLoRa() {
   
   //LoRa.setSpreadingFactor(8);
   //LoRa.setTxPower(17, PA_OUTPUT_PA_BOOST_PIN);
-  LoRa.setSignalBandwidth(250E3); //7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3, and 250E3.
+  //LoRa.setSignalBandwidth(250E3); //7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3, and 250E3.
   //LoRa.setCodingRate4(8); //ranges from 5-8, default 5
   //LoRa.setSyncWord(0x34); //ranges from 0-0xFF, default 0x34, see API docs
+
+  LoRa.onReceive(onReceive);
+  LoRa.receive(); //activate receive mode
 
   delay(500);
 }
@@ -111,7 +124,7 @@ void sendWebRequest(String graphName, String temperature) {
   String httpRequestData = "0," + graphName + "," + temperature;
   
   httpClient.setConnectTimeout(2000);
-  //httpClient.begin("https://webhook.site/0efed743-b2a2-458d-a09e-7c703143c03a");
+  //httpClient.begin("https://webhook.site/5e077421-31f1-4ab2-a6b3-a52579a1f652");
   httpClient.begin("http://iotplotter.com/api/v2/feed/831079989972422411.csv");
   httpClient.addHeader("api-key", "");
   httpClient.addHeader("Content-Type", "application/x-www-form-urlencoded");
@@ -127,7 +140,9 @@ void sendWebRequest(String graphName, String temperature) {
 }
 
 void analyzeSystemHttpCodes(int httpCode) {
-  if (httpCode == HTTPC_ERROR_SEND_HEADER_FAILED) {
+  if (httpCode == HTTPC_ERROR_CONNECTION_REFUSED) {
+    Serial.println(F("HTTPC_ERROR_CONNECTION_REFUSED"));
+  } else if (httpCode == HTTPC_ERROR_SEND_HEADER_FAILED) {
     Serial.println(F("HTTPC_ERROR_SEND_HEADER_FAILED"));
   } else if (httpCode == HTTPC_ERROR_SEND_PAYLOAD_FAILED) {
     Serial.println(F("HTTPC_ERROR_SEND_PAYLOAD_FAILED"));
@@ -203,22 +218,28 @@ void setup() {
 }
 
 void loop() {
-  displayClear();
+
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis > interval) {
+    displayClear();
+    displaySmallText(0, 0, "Received packages");
+    displayLargeText(0, 14, String(receiveCounter));
+    displaySmallText(0, 44, "Failures: " + String(failureCounter));
+    displayDraw();
+
+    previousMillis = currentMillis;
+  }
+
+  if (loraDataAvailable) {
+    loraDataAvailable = false;
   
-  int packetSize = LoRa.parsePacket();
-  if (packetSize) {
-    receiveCounter++;
-    
-    displayNormalText(0, 8, "package");
-    displayNormalText(0, 25, "received");
-    
     //Read data
     int readIteration = 0;
     while (LoRa.available()) {
       receivedData = LoRa.readString();
       readIteration++;
     }
-
+    
     //Print packet infos
     Serial.print("Receive i:'");
     Serial.print(readIteration);
@@ -226,15 +247,7 @@ void loop() {
     Serial.print(receivedData);
     Serial.print("' with RSSI ");
     Serial.println(LoRa.packetRssi());
-
     parseAndProcessReceivedData();
-  } else {
-    displaySmallText(0, 0, "Received packages");
-    displayLargeText(0, 14, String(receiveCounter));
-
-    displaySmallText(0, 44, "Failures: " + String(failureCounter));
+    
   }
-
-  displayDraw();
-  delay(1000);
 }
