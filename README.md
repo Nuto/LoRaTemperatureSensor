@@ -5,6 +5,17 @@ The aim of this project is to record the temperatures of the individual units in
 
 ![Housing printed](doc/housing-printed.png)
 
+## LoRa
+
+### RSSI
+The Received Signal Strength Indication (RSSI) is the received signal power in milliwatts and is measured in dBm.
+This value can be used as a measurement of how well a receiver can "hear" a signal from a sender.
+The closer to 0 the better the signal is, RSSI minimum is -120 dBm.
+
+- -30dBm: signal is strong
+- -120dBm: signal is weak
+
+
 ## Used Hardware
 
 - [1x Heltec - WIFI LoRa 32 - V2.1](https://amzn.to/3NMaJKi)
