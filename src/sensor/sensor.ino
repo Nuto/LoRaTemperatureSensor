@@ -48,10 +48,6 @@ float temperatureCompensation;
 unsigned long previousMillis = 0UL;
 unsigned long sensorInterval = 1000UL; //1s
 
-void onTxDone() {
-  Serial.println("txDone " + String(millis()));
-}
-
 void initializeLoRa() {
   displayClear();
   displaySmallText(0, 0, "Initialize");
@@ -70,16 +66,16 @@ void initializeLoRa() {
     Serial.println(F("LoRa initialization failed!"));
     while (1);
   }
-  LoRa.setSpreadingFactor(12);
+  LoRa.setSpreadingFactor(9);
   LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN);
+
+  //LoRa.dumpRegisters(Serial);
   
   //LoRa.setSpreadingFactor(8);
   //LoRa.setTxPower(17, PA_OUTPUT_PA_BOOST_PIN);
   //LoRa.setSignalBandwidth(250E3); //7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3, and 250E3.
   //LoRa.setCodingRate4(8); //ranges from 5-8, default 5
   //LoRa.setSyncWord(0x34); //ranges from 0-0xFF, default 0x34, see API docs
-
-  LoRa.onTxDone(onTxDone);
 
   delay(500);
 }
@@ -121,19 +117,19 @@ void initializeTemperatureSensor() {
   delay(500);
 }
 
+void showLogo() {
+  displayClear();
+  displayLogo();
+  displayDraw();
+  delay(1500);
+}
+
 void showModuleInfo() {
   displayClear();
   displaySmallText(0, 0, "Module Identifier");
   displayLargeText(0, 20, moduleUniqueidentifier);
   displayDraw();
   
-  delay(3000);
-}
-
-void showLogo() {
-  displayClear();
-  displayLogo();
-  displayDraw();
   delay(2000);
 }
 
@@ -208,6 +204,10 @@ void setup() {
 }
 
 void taskSendLora( void * pvParameters ) {
+
+  //wait for first sensor read
+  delay(2000);
+  
   for(;;) {
 
     int differenceTemperature = abs((lastSentTemperature - averageTemperature) * 100);
