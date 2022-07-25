@@ -46,8 +46,7 @@ String moduleUniqueidentifier;
 float temperatureCompensation;
 
 unsigned long previousMillis = 0UL;
-unsigned long sensorInterval = 5000UL; //1s
-unsigned long transmitInterval = 10000UL; //10s
+unsigned long sensorInterval = 1000UL; //1s
 
 void onTxDone() {
   Serial.println("txDone " + String(millis()));
@@ -174,7 +173,8 @@ void sendLoraPackage() {
   LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN);
   LoRa.print(moduleUniqueidentifier + "#t:" + String(temperature) + "#h:" + String(humidity));
   LoRa.endPacket();
-
+  
+  Serial.println("Send done");
   lastSentTemperature = averageTemperature;
 }
 
@@ -196,7 +196,35 @@ void setup() {
   initializeLoRa();
   initializeTemperatureSensor();
 
+  xTaskCreate(
+                    taskSendLora,       /* Task function. */
+                    "sendLoraTask",     /* String with name of task. */
+                    10000,             /* Stack size in words. */
+                    NULL,              /* Parameter passed as input of the task */
+                    2,                 /* Priority of the task. */
+                    NULL);             /* Task handle. */
+
   Serial.println("System is ready");
+}
+
+void taskSendLora( void * pvParameters ) {
+  for(;;) {
+
+    int differenceTemperature = abs((lastSentTemperature - averageTemperature) * 100);
+    Serial.print("Temperature Difference:" + String(differenceTemperature));
+    Serial.print(" (");
+    Serial.print(lastSentTemperature * 100, 4);
+    Serial.print("/");
+    Serial.print(averageTemperature * 100, 4);
+    Serial.println(")");
+    
+    //if (differenceTemperature > 10)
+    //{
+      sendLoraPackage();
+    //}
+    
+    delay(10000);
+  }
 }
 
 void loop() {
@@ -204,9 +232,7 @@ void loop() {
   unsigned long currentMillis = millis();
 
   if (Serial.available() > 0) {
-    Serial.println("serial input received");
     String command = Serial.readString();
-    Serial.println("serial input readed");
     if (command.equalsIgnoreCase("reset")) {
       ESP.restart();
     }
@@ -234,7 +260,6 @@ void loop() {
   }
 
   if (currentMillis - previousMillis > sensorInterval) {
-  
     bme.takeForcedMeasurement();
     temperature = bme.readTemperature();
     humidity = bme.readHumidity();
@@ -255,23 +280,5 @@ void loop() {
     displayDraw();
   
     previousMillis = currentMillis;
-  }
-
-  if (currentMillis - previousMillis > transmitInterval) {
-    //TODO: Add second interval logic
-    
-    int differenceTemperature = abs((lastSentTemperature - averageTemperature) * 100);
-    Serial.print("Temperature Difference:" + String(differenceTemperature));
-    Serial.print(" (");
-    Serial.print(lastSentTemperature * 100, 4);
-    Serial.print("/");
-    Serial.print(averageTemperature * 100, 4);
-    Serial.println(")");
-    
-    //if (differenceTemperature > 10)
-    //{
-      sendLoraPackage();
-    //}
-    
   }
 }
