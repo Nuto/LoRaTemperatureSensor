@@ -30,9 +30,9 @@ HTTPClient httpClient;
 unsigned long previousMillis = 0UL;
 unsigned long interval = 1000UL; //1s
 
-unsigned int receiveCounter;
+volatile unsigned int receiveCounter;
+volatile bool loraDataAvailable;
 String receivedData;
-bool loraDataAvailable;
 
 unsigned int failureCounter;
 
@@ -56,8 +56,17 @@ void initializeLoRa() {
     Serial.println(F("LoRa initialization failed!"));
     while (1);
   }
-  LoRa.setSpreadingFactor(12);
-  LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN);
+
+//  LoRa.setSpreadingFactor(12);
+//  LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN); //Supported values are 2 to 20 for PA_OUTPUT_PA_BOOST_PIN
+
+  LoRa.setPreambleLength(8);
+  LoRa.setFrequency(868E6);
+  LoRa.setSpreadingFactor(9);
+  LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN); //Supported values are 2 to 20 for PA_OUTPUT_PA_BOOST_PIN
+  LoRa.setSyncWord(0x91); //ranges from 0-0xFF, default 0x34, see API docs
+  LoRa.setSignalBandwidth(31.25E3);
+  LoRa.setCodingRate4(8); //ranges from 5-8, default 5
   
   //LoRa.setSpreadingFactor(8);
   //LoRa.setTxPower(17, PA_OUTPUT_PA_BOOST_PIN);
