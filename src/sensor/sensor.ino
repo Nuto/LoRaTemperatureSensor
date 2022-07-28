@@ -28,7 +28,7 @@ TwoWire I2Cone = TwoWire(1);
 #define BAND    868E6
 
 //Sensor config
-#define ROLLING_AVERAGE_DATAPOINT_NUMBER 100
+#define ROLLING_AVERAGE_DATAPOINT_NUMBER 20
 
 float temperature;
 float humidity;
@@ -66,8 +66,20 @@ void initializeLoRa() {
     Serial.println(F("LoRa initialization failed!"));
     while (1);
   }
+
+  //Lora Send Configuration examples
+  //https://github.com/dragino/Arduino-Profile-Examples/blob/master/libraries/Dragino/examples/LoRa/LoRa_Simple_Client_Arduino/LoRa_Simple_Client_Arduino.ino
+
+//  LoRa.setSpreadingFactor(12);
+//  LoRa.end();
+
+  LoRa.setPreambleLength(8);
+  LoRa.setFrequency(868E6);
+  //LoRa.setSignalBandwidth(31.25E3); //Problem with LSM2
+  LoRa.setCodingRate4(8); //ranges from 5-8, default 5
   LoRa.setSpreadingFactor(9);
-  LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN);
+  LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN); //Supported values are 2 to 20 for PA_OUTPUT_PA_BOOST_PIN
+  LoRa.setSyncWord(0x91); //ranges from 0-0xFF, default 0x34, see API docs
 
   //LoRa.dumpRegisters(Serial);
   
@@ -83,7 +95,7 @@ void initializeLoRa() {
 void initializeTemperatureSensor() {
   displayClear();
   displaySmallText(0, 0, "Initialize");
-  displayLargeText(0, 20, "T+H");
+  displayLargeText(0, 20, "T&H");
   displayNormalText(56, 28, "Sensor");
   displayDraw();
   
@@ -162,16 +174,16 @@ double calculateAverageHumidity (double currentHumidity) {
 
 void sendLoraPackage() {
   Serial.println("Send temperature via LoRa");
+  
   int isReady = LoRa.beginPacket();
-  Serial.println("isReady:" + String(isReady));
+  Serial.println("LoRa isReady:" + String(isReady));
   //LoRa.setTxPower(20, 0x80);
   //Serial.println(PA_OUTPUT_PA_BOOST_PIN);
-  LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN);
+  //LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN);
   LoRa.print(moduleUniqueidentifier + "#t:" + String(temperature) + "#h:" + String(humidity));
   LoRa.endPacket();
   
   Serial.println("Send done");
-  lastSentTemperature = averageTemperature;
 }
 
 void setup() {
@@ -193,12 +205,12 @@ void setup() {
   initializeTemperatureSensor();
 
   xTaskCreate(
-                    taskSendLora,       /* Task function. */
-                    "sendLoraTask",     /* String with name of task. */
-                    10000,             /* Stack size in words. */
-                    NULL,              /* Parameter passed as input of the task */
-                    2,                 /* Priority of the task. */
-                    NULL);             /* Task handle. */
+    taskSendLora,       /* Task function. */
+    "sendLoraTask",     /* String with name of task. */
+    10000,             /* Stack size in words. */
+    NULL,              /* Parameter passed as input of the task */
+    2,                 /* Priority of the task. */
+    NULL);             /* Task handle. */
 
   Serial.println("System is ready");
 }
@@ -207,22 +219,26 @@ void taskSendLora( void * pvParameters ) {
 
   //wait for first sensor read
   delay(2000);
+  unsigned int loopCounter = 0;
   
   for(;;) {
 
     int differenceTemperature = abs((lastSentTemperature - averageTemperature) * 100);
     Serial.print("Temperature Difference:" + String(differenceTemperature));
-    Serial.print(" (");
+    Serial.print(" (L:");
     Serial.print(lastSentTemperature * 100, 4);
-    Serial.print("/");
+    Serial.print("/A:");
     Serial.print(averageTemperature * 100, 4);
     Serial.println(")");
     
-    //if (differenceTemperature > 10)
-    //{
+    if (differenceTemperature > 10 || loopCounter > 30) //send info on a change of 0.1% or after 5 minutes
+    {
       sendLoraPackage();
-    //}
-    
+      lastSentTemperature = averageTemperature;
+      loopCounter = 0;
+    }
+
+    loopCounter++;
     delay(10000);
   }
 }
