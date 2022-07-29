@@ -3,7 +3,7 @@ A distributed Temperature Sensor connected via LoRa with a Master Module with a 
 
 The aim of this project is to record the temperatures of the individual units in a small apartment complex in order to obtain an overall picture of the heating and cooling performance. The sensor data of the slave modules are then sent via LoRa to the master module. This then forwards the data via WLAN to a cloud service. This means that each slave module does not have to have its own WLAN configuration.
 
-![Housing printed](doc/housing-printed.png)
+<img src="doc/housing-printed.png" title="Housing printed" width="400">
 
 ## LoRa
 
@@ -33,7 +33,8 @@ The first housing variant still had few openings due to the additional optimizat
 ### Temperature profile
 
 When measuring with a thermal imaging camera, it is now clearly visible that the ESP32 heats up the housing disadvantageously in continuous operation and influences the temperature measurement with a very high probability. The next development steps therefore go in the direction of deep sleep to improve this behavior.
-![Housing printed](doc/FLIR0017.jpg)
+
+<img src="doc/FLIR0017.jpg" title="thermal camera" width="300">
 
 ## Used Hardware
 
@@ -51,8 +52,7 @@ When measuring with a thermal imaging camera, it is now clearly visible that the
 
 ## Housing
 
-![Housing](doc/housing.png)
-![Cover](doc/housing-cover.png)
+<img src="doc/housing.png" title="Housing" width="400"> <img src="doc/housing-cover.png" title="Housing Cover" width="400">
 
 ## Sensor data targets
 
