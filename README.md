@@ -16,6 +16,20 @@ The closer to 0 the better the signal is, RSSI `minimum is -120dBm`.
 - `-120dBm` signal is weak
 
 
+## Findings
+
+### Temperature rise due to the sensor itself
+
+In the beginning, the temperature always increased the same when I put my sensor into operation. After a little research I then found out that the standard configuration makes 1000 queries per second and thus the temperature sensor heats up this I have now solved so that I manually trigger the sensor to query the temperature value and this now happens only 1 time per second.
+
+### Sensor configuration
+
+Adjusting the sensor name each time in the code before compiling was very inconvenient and error-prone. Since the ESP32 has no EEPROM I have now stored the values in the flash via the `Preferences` library.
+
+### Housing optimizations
+
+The first housing variant still had few openings due to the additional optimization, the sensor now reacts faster to changes.
+
 ## Used Hardware
 
 - [1x Heltec - WIFI LoRa 32 - V2.1](https://amzn.to/3NMaJKi)
