@@ -57,23 +57,13 @@ void initializeLoRa() {
     while (1);
   }
 
-//  LoRa.setSpreadingFactor(12);
-//  LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN); //Supported values are 2 to 20 for PA_OUTPUT_PA_BOOST_PIN
-
   LoRa.setPreambleLength(8);
-  LoRa.setFrequency(868E6);
+  LoRa.setSignalBandwidth(31.25E3);
+  LoRa.setCodingRate4(8); //ranges from 5-8, default 5
   LoRa.setSpreadingFactor(9);
   LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN); //Supported values are 2 to 20 for PA_OUTPUT_PA_BOOST_PIN
   LoRa.setSyncWord(0x91); //ranges from 0-0xFF, default 0x34, see API docs
-  LoRa.setSignalBandwidth(31.25E3);
-  LoRa.setCodingRate4(8); //ranges from 5-8, default 5
   
-  //LoRa.setSpreadingFactor(8);
-  //LoRa.setTxPower(17, PA_OUTPUT_PA_BOOST_PIN);
-  //LoRa.setSignalBandwidth(250E3); //7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3, and 250E3.
-  //LoRa.setCodingRate4(8); //ranges from 5-8, default 5
-  //LoRa.setSyncWord(0x34); //ranges from 0-0xFF, default 0x34, see API docs
-
   LoRa.onReceive(onReceive);
   LoRa.receive(); //activate receive mode
 
@@ -98,12 +88,14 @@ void initializeWLAN() {
   WiFi.begin(ssid, password);
 
   byte retryCount = 0;
-  byte maxRetries = 10;
+  byte maxRetries = 15;
+  Serial.print(F(", try connect["));
   while (WiFi.status() != WL_CONNECTED && retryCount < maxRetries) {
     retryCount++;
     delay(500);
     Serial.print(".");
   }
+  Serial.print(F("]"));
 
   Serial.println();
 

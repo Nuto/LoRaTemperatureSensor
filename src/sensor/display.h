@@ -20,6 +20,14 @@ void displayDraw() {
   display.display();
 }
 
+void setContrast() {
+  display.ssd1306_command(SSD1306_SETCONTRAST);
+  //display.ssd1306_command(0xFF); //brightness high
+  display.ssd1306_command(0x00); //brightness low
+  display.ssd1306_command(SSD1306_SETPRECHARGE);
+  display.ssd1306_command(0x1F);
+}
+
 void displayLogo() {
   display.drawBitmap(
   (display.width()  - BOOT_LOGO_WIDTH ) / 2,
@@ -73,4 +81,5 @@ void initializeOledDisplay() {
   }
 
   display.setRotation(2); //Rotate 180°
+  setContrast();
 }

@@ -57,10 +57,7 @@ void initializeLoRa() {
   Serial.println(F("Initialize LoRa"));
   SPI.begin(SCK, MISO, MOSI, SS);
   LoRa.setPins(18, 14, 26);
-  //LoRa.setPins(SS,RST_LoRa,DIO0);
-  //Serial.println(SS);
-  //Serial.println(RST_LoRa);
-  //Serial.println(DIO0);
+
   if (!LoRa.begin(BAND))
   {
     Serial.println(F("LoRa initialization failed!"));
@@ -70,24 +67,15 @@ void initializeLoRa() {
   //Lora Send Configuration examples
   //https://github.com/dragino/Arduino-Profile-Examples/blob/master/libraries/Dragino/examples/LoRa/LoRa_Simple_Client_Arduino/LoRa_Simple_Client_Arduino.ino
 
-//  LoRa.setSpreadingFactor(12);
-//  LoRa.end();
-
   LoRa.setPreambleLength(8);
-  LoRa.setFrequency(868E6);
-  //LoRa.setSignalBandwidth(31.25E3); //Problem with LSM2
+  LoRa.setSignalBandwidth(31.25E3);
   LoRa.setCodingRate4(8); //ranges from 5-8, default 5
   LoRa.setSpreadingFactor(9);
   LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN); //Supported values are 2 to 20 for PA_OUTPUT_PA_BOOST_PIN
   LoRa.setSyncWord(0x91); //ranges from 0-0xFF, default 0x34, see API docs
 
+  //Debugging
   //LoRa.dumpRegisters(Serial);
-  
-  //LoRa.setSpreadingFactor(8);
-  //LoRa.setTxPower(17, PA_OUTPUT_PA_BOOST_PIN);
-  //LoRa.setSignalBandwidth(250E3); //7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3, and 250E3.
-  //LoRa.setCodingRate4(8); //ranges from 5-8, default 5
-  //LoRa.setSyncWord(0x34); //ranges from 0-0xFF, default 0x34, see API docs
 
   delay(500);
 }
@@ -177,9 +165,6 @@ void sendLoraPackage() {
   
   int isReady = LoRa.beginPacket();
   Serial.println("LoRa isReady:" + String(isReady));
-  //LoRa.setTxPower(20, 0x80);
-  //Serial.println(PA_OUTPUT_PA_BOOST_PIN);
-  //LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN);
   LoRa.print(moduleUniqueidentifier + "#t:" + String(temperature) + "#h:" + String(humidity));
   LoRa.endPacket();
   

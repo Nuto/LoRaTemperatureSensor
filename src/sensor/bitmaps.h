@@ -1,4 +1,5 @@
-//Prepare Boot Logo 64x53
+//Otter
+//Prepare Boot Logo 64x56
 //https://javl.github.io/image2cpp/
 //Background color Transparent
 //Horizontal - 1 bit per pixel alpha map
