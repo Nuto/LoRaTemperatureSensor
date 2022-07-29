@@ -28,7 +28,7 @@ Adjusting the sensor name each time in the code before compiling was very inconv
 
 ### Housing optimizations
 
-The first housing variant still had few openings due to the additional optimization, the sensor now reacts faster to changes.
+The first housing variant (V1) still had few openings due to the additional optimization, the sensor now reacts faster to changes. The current housing variant is (V2)
 
 ### Temperature profile
 
