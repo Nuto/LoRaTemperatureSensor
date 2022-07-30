@@ -30,29 +30,38 @@ TwoWire I2Cone = TwoWire(1);
 //Sensor config
 #define ROLLING_AVERAGE_DATAPOINT_NUMBER 20
 
+//Deep Sleep
+#define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
+#define TIME_TO_SLEEP  5        /* Time ESP32 will go to sleep (in seconds) */
+
+esp_sleep_wakeup_cause_t wakeup_reason;
+
+RTC_DATA_ATTR unsigned int bootCount = 0;
+RTC_DATA_ATTR unsigned int loopCounter;
+
 float temperature;
 float humidity;
 float pressure;
 
-float averageTemperature;
-float averageHumidity;
+RTC_DATA_ATTR float averageTemperature;
+RTC_DATA_ATTR float averageHumidity;
 
-float lastSentTemperature;
-float lastSentHumidity;
+RTC_DATA_ATTR float lastSentTemperature;
+RTC_DATA_ATTR float lastSentHumidity;
 
 char temperatureRounded[4];
 
 String moduleUniqueidentifier;
 float temperatureCompensation;
 
-unsigned long previousMillis = 0UL;
-unsigned long sensorInterval = 1000UL; //1s
+void initializeLoRa(bool displayOutput, int delayDuration) {
 
-void initializeLoRa() {
-  displayClear();
-  displaySmallText(0, 0, "Initialize");
-  displayLargeText(0, 20, "LoRa");
-  displayDraw();
+  if (displayOutput) {
+    displayClear();
+    displaySmallText(0, 0, "Initialize");
+    displayLargeText(0, 20, "LoRa");
+    displayDraw();
+  }
 
   Serial.println(F("Initialize LoRa"));
   SPI.begin(SCK, MISO, MOSI, SS);
@@ -77,15 +86,23 @@ void initializeLoRa() {
   //Debugging
   //LoRa.dumpRegisters(Serial);
 
-  delay(500);
+  delay(delayDuration);
 }
 
-void initializeTemperatureSensor() {
-  displayClear();
-  displaySmallText(0, 0, "Initialize");
-  displayLargeText(0, 20, "T&H");
-  displayNormalText(56, 28, "Sensor");
-  displayDraw();
+void terminateLoRa() {
+  LoRa.end();
+  SPI.end();
+}
+
+void initializeTemperatureSensor(bool displayOutput, int delayDuration) {
+
+  if (displayOutput) {
+    displayClear();
+    displaySmallText(0, 0, "Initialize");
+    displayLargeText(0, 20, "T&H");
+    displayNormalText(56, 28, "Sensor");
+    displayDraw();
+  }
   
   //Set Pins for BME280 Sensor
   I2Cone.begin(SDA, SCL, 100000); 
@@ -111,10 +128,7 @@ void initializeTemperatureSensor() {
   Serial.print("TemperatureCompensation: ");
   Serial.println(temperatureCompensation);
 
-  averageTemperature = bme.readTemperature();
-  averageHumidity = bme.readHumidity();
-
-  delay(500);
+  delay(delayDuration);
 }
 
 void showLogo() {
@@ -171,146 +185,106 @@ void sendLoraPackage() {
   Serial.println("Send done");
 }
 
-
-#define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
-#define TIME_TO_SLEEP  5        /* Time ESP32 will go to sleep (in seconds) */
-RTC_DATA_ATTR int bootCount = 0;
-
-void print_wakeup_reason(){
-  esp_sleep_wakeup_cause_t wakeup_reason;
-
-  wakeup_reason = esp_sleep_get_wakeup_cause();
-
-  switch(wakeup_reason)
-  {
-    case ESP_SLEEP_WAKEUP_EXT0 : Serial.println("Wakeup caused by external signal using RTC_IO"); break;
-    case ESP_SLEEP_WAKEUP_EXT1 : Serial.println("Wakeup caused by external signal using RTC_CNTL"); break;
-    case ESP_SLEEP_WAKEUP_TIMER : Serial.println("Wakeup caused by timer"); break;
-    case ESP_SLEEP_WAKEUP_TOUCHPAD : Serial.println("Wakeup caused by touchpad"); break;
-    case ESP_SLEEP_WAKEUP_ULP : Serial.println("Wakeup caused by ULP program"); break;
-    default : Serial.printf("Wakeup was not caused by deep sleep: %d\n",wakeup_reason); break;
-  }
-}
-
 void setup() {
   ++bootCount;
+
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  wakeup_reason = esp_sleep_get_wakeup_cause();  
   
   //Prepare Serial connection
   Serial.begin(115200);
   Serial.setTimeout(250);
-
-  print_wakeup_reason();
-
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-  Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) + " Seconds");
   
-  Serial.println("Initialize system");
-
   moduleUniqueidentifier = getModuleUniqueidentifier();
   if (moduleUniqueidentifier.length() == 0) {
     setConfiguration();
   }
-  
-  resetOledDisplay();
-  initializeOledDisplay();
-  showLogo();
-  showModuleInfo();
-  initializeLoRa();
-  initializeTemperatureSensor();
 
-  xTaskCreate(
-    taskSendLora,       /* Task function. */
-    "sendLoraTask",     /* String with name of task. */
-    10000,             /* Stack size in words. */
-    NULL,              /* Parameter passed as input of the task */
-    2,                 /* Priority of the task. */
-    NULL);             /* Task handle. */
+  if (wakeup_reason == ESP_SLEEP_WAKEUP_UNDEFINED) {
+    Serial.println("Initialize system");
+    resetOledDisplay();
+    initializeOledDisplay();
+    showLogo();
+    showModuleInfo();
+    initializeLoRa(true, 500);
+    initializeTemperatureSensor(true, 500);
 
-  Serial.println("System is ready");
-}
-
-void taskSendLora( void * pvParameters ) {
-
-  //wait for first sensor read
-  delay(2000);
-  unsigned int loopCounter = 0;
-  
-  for(;;) {
-
-    int differenceTemperature = abs((lastSentTemperature - averageTemperature) * 100);
-    Serial.print("Temperature Difference:" + String(differenceTemperature));
-    Serial.print(" (L:");
-    Serial.print(lastSentTemperature * 100, 4);
-    Serial.print("/A:");
-    Serial.print(averageTemperature * 100, 4);
-    Serial.println(")");
+    terminateLoRa();
     
-    if (differenceTemperature > 10 || loopCounter > 30) //send info on a change of 0.1% or after 5 minutes
-    {
-      sendLoraPackage();
-      lastSentTemperature = averageTemperature;
-      loopCounter = 0;
-    }
-
-    loopCounter++;
-    delay(10000);
+    averageTemperature = bme.readTemperature();
+    averageHumidity = bme.readHumidity();
+    
+    Serial.println("System is ready");
   }
+
+  if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
+    initializeTemperatureSensor(false, 0);
+  }
+
+  Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) + " Seconds");
+  Serial.println(bootCount);
 }
 
 void loop() {
-Serial.println("wake up");
-esp_deep_sleep_start();
-
-  unsigned long currentMillis = millis();
-
-  if (Serial.available() > 0) {
-    String command = Serial.readString();
-    if (command.equalsIgnoreCase("reset")) {
-      ESP.restart();
-    }
-  
-    if (command.equalsIgnoreCase("send")) {
-      sendLoraPackage();
-    }
-    
-    if (command.startsWith("config.muid=")) {
-      Serial.println("set muid config");
-      String value = command.substring(12);
-  
-      setModuleUniqueidentifier(value);
-    }
-  
-    if (command.startsWith("config.tc=")) {
-      Serial.println("set tc config");
-      String value = command.substring(10);
-  
-      temperatureCompensation = value.toFloat();
-  
-      setTemperatureCompensation(temperatureCompensation);
-      bme.setTemperatureCompensation(temperatureCompensation);
+  if (wakeup_reason == ESP_SLEEP_WAKEUP_UNDEFINED) {
+    for (int i = 0; i <= 5; i++) {
+      Serial.println("check command available");
+      if (Serial.available() > 0) {
+        String command = Serial.readString();
+        if (command.equalsIgnoreCase("reset")) {
+          ESP.restart();
+        }
+      
+        if (command.equalsIgnoreCase("send")) {
+          //sendLoraPackage();
+        }
+        
+        if (command.startsWith("config.muid=")) {
+          Serial.println("set muid config");
+          String value = command.substring(12);
+      
+          setModuleUniqueidentifier(value);
+        }
+      
+        if (command.startsWith("config.tc=")) {
+          Serial.println("set tc config");
+          String value = command.substring(10);
+      
+          temperatureCompensation = value.toFloat();
+      
+          setTemperatureCompensation(temperatureCompensation);
+          bme.setTemperatureCompensation(temperatureCompensation);
+        }
+      }
+      delay(1000);
     }
   }
 
-  if (currentMillis - previousMillis > sensorInterval) {
-    bme.takeForcedMeasurement();
-    temperature = bme.readTemperature();
-    humidity = bme.readHumidity();
-    pressure = bme.readPressure() / 100.0F;
-  
-    calculateAverageTemperature(temperature);
-    calculateAverageHumidity(humidity);
-  
-    Serial.print("Temperature:" + String(temperature) + ", ");
-    Serial.print("Humidity:" + String(humidity) + ", ");
-    Serial.println("Pressure:" + String(pressure / 100.0F));
-  
-    displayClear();
-    dtostrf(temperature, 2, 1, temperatureRounded);
-    displayExtraLargeText(0, 15, String(temperatureRounded));
-    displayNormalText(100, 0, "o");
-    displaySmallText(0, 52, "Humidity: " + String(averageHumidity) + "%");
-    displayDraw();
-  
-    previousMillis = currentMillis;
+  Serial.println("read sensor data");
+  bme.takeForcedMeasurement();
+  temperature = bme.readTemperature();
+  humidity = bme.readHumidity();
+  pressure = bme.readPressure() / 100.0F;
+
+  calculateAverageTemperature(temperature);
+  calculateAverageHumidity(humidity);
+
+  Serial.print("Temperature:" + String(temperature) + ", ");
+  Serial.print("Humidity:" + String(humidity) + ", ");
+  Serial.println("Pressure:" + String(pressure / 100.0F));
+
+  int differenceTemperature = abs((lastSentTemperature - averageTemperature) * 100);
+  if (differenceTemperature > 10 || loopCounter > 60) //send info on a change of 0.1% or after 5 minutes
+  {
+    initializeLoRa(false, 0);
+    sendLoraPackage();
+    terminateLoRa();
+    lastSentTemperature = averageTemperature;
+    loopCounter = 0;
   }
+
+  loopCounter++;
+  
+  Serial.println("activate deep sleep");
+  esp_deep_sleep_start();
 }

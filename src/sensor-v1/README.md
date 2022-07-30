@@ -4,7 +4,7 @@
 
 - Permanently active display (temperature and humidty)
 - Temperature average of the last 20 values
-- Communication via LoRa to the Gateway-Module no LoRaWAN required
+- No LoRaWAN required, communication via LoRa to the Gateway-Module
 
 ## Disadvantages
 
