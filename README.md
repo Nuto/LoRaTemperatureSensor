@@ -56,8 +56,12 @@ When measuring with a thermal imaging camera, it is now clearly visible that the
 
 ## Sensor data targets
 
-- https://www.datagekko.com
-- https://iotplotter.com
-- https://iotguru.live
-- https://thingspeak.com
-- https://thingsboard.io
+
+| Tool | Description |
+| --------------------------- | ------------- |
+| https://iotplotter.com      | Simple tool to visualize fast data but there is no real configuration for the endpoints |
+| https://datagekko.com       | Currently not yet available is in a closed beta |
+| https://iotguru.live        | Not tested |
+| https://thingspeak.com      | Not tested |
+| https://thingsboard.io      | Not tested |
+
