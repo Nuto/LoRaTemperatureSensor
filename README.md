@@ -26,11 +26,11 @@ The closer to 0 the better the signal is, RSSI `minimum is -120dBm`.
 
 The first housing variant (V1) still had few openings due to the additional optimization, the sensor now reacts faster to changes. The current housing variant is (V2)
 
-### Temperature rise due to the sensor itself
+### Temperature rise due the BME280 (Humidity & Pressure Sensor)
 
 In the beginning, the temperature always increased the same when I put my sensor into operation. After a little research I then found out that the standard configuration makes 1000 queries per second and thus the temperature sensor heats up this I have now solved so that I manually trigger the sensor to query the temperature value and this now happens only 1 time per second.
 
-### Temperature rise due to the esp32
+### Temperature rise due to the esp32 (CPU)
 
 When measuring with a thermal imaging camera, it is now clearly visible that the `ESP32` heats up the housing disadvantageously in continuous operation and influences the temperature measurement with a very high probability. The next development steps therefore go in the direction of deep sleep to improve this behavior. After my first tests in deep sleep I could see a temperature difference of `1.5°` which is the `deep sleep` code optimization.
 
