@@ -22,23 +22,23 @@ The closer to 0 the better the signal is, RSSI `minimum is -120dBm`.
 
 ## Findings
 
-### Temperature rise due to the sensor itself
-
-In the beginning, the temperature always increased the same when I put my sensor into operation. After a little research I then found out that the standard configuration makes 1000 queries per second and thus the temperature sensor heats up this I have now solved so that I manually trigger the sensor to query the temperature value and this now happens only 1 time per second.
-
-### Sensor configuration
-
-Adjusting the sensor name each time in the code before compiling was very inconvenient and error-prone. Since the ESP32 has no EEPROM I have now stored the values in the flash via the `Preferences` library.
-
 ### Housing optimizations
 
 The first housing variant (V1) still had few openings due to the additional optimization, the sensor now reacts faster to changes. The current housing variant is (V2)
+
+### Temperature rise due to the sensor itself
+
+In the beginning, the temperature always increased the same when I put my sensor into operation. After a little research I then found out that the standard configuration makes 1000 queries per second and thus the temperature sensor heats up this I have now solved so that I manually trigger the sensor to query the temperature value and this now happens only 1 time per second.
 
 ### Temperature rise due to the esp32
 
 When measuring with a thermal imaging camera, it is now clearly visible that the `ESP32` heats up the housing disadvantageously in continuous operation and influences the temperature measurement with a very high probability. The next development steps therefore go in the direction of deep sleep to improve this behavior. After my first tests in deep sleep I could see a temperature difference of `1.5°` which is the `deep sleep` code optimization.
 
 <img src="doc/FLIR0017.jpg" title="thermal camera" width="300">
+
+### Sensor configuration
+
+Adjusting the sensor name each time in the code before compiling was very inconvenient and error-prone. Since the ESP32 has no EEPROM I have now stored the values in the flash via the `Preferences` library.
 
 ## Used Hardware
 
