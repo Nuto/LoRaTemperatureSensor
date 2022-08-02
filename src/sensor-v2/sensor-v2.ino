@@ -252,6 +252,13 @@ void setup() {
 
   if (wakeup_reason == ESP_SLEEP_WAKEUP_UNDEFINED) {
     Serial.println("Initialize system");
+
+    if (heap_caps_check_integrity_all(true)) {
+      Serial.println("heap integrity is good");
+    } else {
+      Serial.println("heap integrity has errors");
+    }
+
     resetOledDisplay();
     initializeOledDisplay();
     showLogo();
