@@ -103,10 +103,10 @@ void initializeTemperatureSensor(bool displayOutput, int delayDuration) {
     displayNormalText(56, 28, "Sensor");
     displayDraw();
   }
-  
+
   //Set Pins for BME280 Sensor
-  I2Cone.begin(SDA, SCL, 100000); 
-  
+  I2Cone.begin(SDA, SCL, 100000);
+
   if (!bme.begin(0x76, &I2Cone)) {
     Serial.println(F("Could not find a valid BME280 sensor, check wiring!"));
     while (1);
@@ -114,10 +114,10 @@ void initializeTemperatureSensor(bool displayOutput, int delayDuration) {
 
   //The sensor requires special protection so that it does not falsify the measurement data due to its own heat
   bme.setSampling(Adafruit_BME280::MODE_FORCED,   //Query the sensor data only on command
-                    Adafruit_BME280::SAMPLING_X1, //Temperature
-                    Adafruit_BME280::SAMPLING_X1, //Pressure
-                    Adafruit_BME280::SAMPLING_X1, //Humidity
-                    Adafruit_BME280::FILTER_X2);  //Specifies how many samples are required until in the case of an abrupt change in the measured value the data output has followed at least 75% of the change
+                  Adafruit_BME280::SAMPLING_X1, //Temperature
+                  Adafruit_BME280::SAMPLING_X1, //Pressure
+                  Adafruit_BME280::SAMPLING_X1, //Humidity
+                  Adafruit_BME280::FILTER_X2);  //Specifies how many samples are required until in the case of an abrupt change in the measured value the data output has followed at least 75% of the change
 
   bme.takeForcedMeasurement();
 
@@ -143,13 +143,23 @@ void showModuleInfo() {
   displaySmallText(0, 0, "Module Identifier");
   displayLargeText(0, 20, moduleUniqueidentifier);
   displayDraw();
-  
+
   delay(2000);
+}
+
+void showSystemReady() {
+  displayClear();
+  displaySmallText(0, 0, "System Status");
+  displayLargeText(0, 20, "Ready");
+  displaySmallText(0, 50, "disable Display");
+  displayDraw();
+
+  delay(2500);
 }
 
 void setConfiguration() {
   //TODO: set display text "set configuration via serial"
-  
+
   while (!Serial.available()) {
     Serial.println(F("Configuration mode active, please set ModuleUniqueidentifier via 'config.muid=XXX'"));
     delay(2000);
@@ -164,6 +174,46 @@ void setConfiguration() {
   ESP.restart();
 }
 
+void checkCommandAvailable() {
+
+  displayClear();
+  displaySmallText(0, 0, "Configuration Mode");
+  displayLargeText(0, 20, "Active");
+  displayDraw();
+
+  for (int i = 0; i <= 5; i++) {
+    Serial.println("check command available");
+    if (Serial.available() > 0) {
+      String command = Serial.readString();
+      if (command.equalsIgnoreCase("reset")) {
+        ESP.restart();
+      }
+
+      if (command.equalsIgnoreCase("send")) {
+        //sendLoraPackage();
+      }
+
+      if (command.startsWith("config.muid=")) {
+        Serial.println("set muid config");
+        String value = command.substring(12);
+
+        setModuleUniqueidentifier(value);
+      }
+
+      if (command.startsWith("config.tc=")) {
+        Serial.println("set tc config");
+        String value = command.substring(10);
+
+        temperatureCompensation = value.toFloat();
+
+        setTemperatureCompensation(temperatureCompensation);
+        bme.setTemperatureCompensation(temperatureCompensation);
+      }
+    }
+    delay(1000);
+  }
+}
+
 double calculateAverageTemperature (double currentTemperature) {
   averageTemperature -= averageTemperature / ROLLING_AVERAGE_DATAPOINT_NUMBER;
   averageTemperature += currentTemperature / ROLLING_AVERAGE_DATAPOINT_NUMBER;
@@ -176,12 +226,12 @@ double calculateAverageHumidity (double currentHumidity) {
 
 void sendLoraPackage() {
   Serial.println("Send temperature via LoRa");
-  
+
   int isReady = LoRa.beginPacket();
   Serial.println("LoRa isReady:" + String(isReady));
   LoRa.print(moduleUniqueidentifier + "#t:" + String(temperature) + "#h:" + String(humidity));
   LoRa.endPacket();
-  
+
   Serial.println("Send done");
 }
 
@@ -189,12 +239,12 @@ void setup() {
   ++bootCount;
 
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-  wakeup_reason = esp_sleep_get_wakeup_cause();  
-  
+  wakeup_reason = esp_sleep_get_wakeup_cause();
+
   //Prepare Serial connection
   Serial.begin(115200);
   Serial.setTimeout(250);
-  
+
   moduleUniqueidentifier = getModuleUniqueidentifier();
   if (moduleUniqueidentifier.length() == 0) {
     setConfiguration();
@@ -210,11 +260,17 @@ void setup() {
     initializeTemperatureSensor(true, 500);
 
     terminateLoRa();
-    
+
     averageTemperature = bme.readTemperature();
     averageHumidity = bme.readHumidity();
-    
+
+    checkCommandAvailable();
+
     Serial.println("System is ready");
+    showSystemReady();
+
+    displayClear();
+    displayDraw();
   }
 
   if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
@@ -222,44 +278,9 @@ void setup() {
   }
 
   Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) + " Seconds");
-  Serial.println(bootCount);
 }
 
 void loop() {
-  if (wakeup_reason == ESP_SLEEP_WAKEUP_UNDEFINED) {
-    for (int i = 0; i <= 5; i++) {
-      Serial.println("check command available");
-      if (Serial.available() > 0) {
-        String command = Serial.readString();
-        if (command.equalsIgnoreCase("reset")) {
-          ESP.restart();
-        }
-      
-        if (command.equalsIgnoreCase("send")) {
-          //sendLoraPackage();
-        }
-        
-        if (command.startsWith("config.muid=")) {
-          Serial.println("set muid config");
-          String value = command.substring(12);
-      
-          setModuleUniqueidentifier(value);
-        }
-      
-        if (command.startsWith("config.tc=")) {
-          Serial.println("set tc config");
-          String value = command.substring(10);
-      
-          temperatureCompensation = value.toFloat();
-      
-          setTemperatureCompensation(temperatureCompensation);
-          bme.setTemperatureCompensation(temperatureCompensation);
-        }
-      }
-      delay(1000);
-    }
-  }
-
   Serial.println("read sensor data");
   bme.takeForcedMeasurement();
   temperature = bme.readTemperature();
@@ -284,7 +305,7 @@ void loop() {
   }
 
   loopCounter++;
-  
+
   Serial.println("activate deep sleep");
   esp_deep_sleep_start();
 }

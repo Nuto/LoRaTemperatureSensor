@@ -63,7 +63,7 @@ void initializeLoRa() {
   LoRa.setSpreadingFactor(9);
   LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN); //Supported values are 2 to 20 for PA_OUTPUT_PA_BOOST_PIN
   LoRa.setSyncWord(0x91); //ranges from 0-0xFF, default 0x34, see API docs
-  
+
   LoRa.onReceive(onReceive);
   LoRa.receive(); //activate receive mode
 
@@ -72,7 +72,7 @@ void initializeLoRa() {
 
 void initializeWLAN() {
   Serial.print(F("Initialize WLAN"));
-  
+
   displayClear();
   displaySmallText(0, 0, "Initialize");
   displayLargeText(0, 20, "WLAN");
@@ -80,7 +80,7 @@ void initializeWLAN() {
 
   WiFi.disconnect(true);
   delay(1000);
-  
+
   WiFi.mode(WIFI_STA);
   WiFi.setAutoConnect(true);
   WiFi.setAutoReconnect(true);
@@ -123,7 +123,7 @@ void showLogo() {
 
 void sendWebRequest(String graphName, String temperature) {
   String httpRequestData = "0," + graphName + "," + temperature;
-  
+
   httpClient.setConnectTimeout(2000);
   //httpClient.begin("https://webhook.site/5e077421-31f1-4ab2-a6b3-a52579a1f652");
   httpClient.begin("http://iotplotter.com/api/v2/feed/831079989972422411.csv");
@@ -131,7 +131,7 @@ void sendWebRequest(String graphName, String temperature) {
   httpClient.addHeader("Content-Type", "application/x-www-form-urlencoded");
   httpClient.setTimeout(5000); //5 seconds
   int httpCode = httpClient.POST(httpRequestData);
-  analyzeSystemHttpCodes(httpCode);  
+  analyzeSystemHttpCodes(httpCode);
   httpClient.end();
 
   Serial.println("iotplotter.com response code:" + String(httpCode) + ", Send Data(" + httpRequestData + ")");
@@ -168,7 +168,7 @@ void analyzeSystemHttpCodes(int httpCode) {
 
 void parseAndProcessReceivedData() {
   unsigned int index = 0;
-  
+
   char str[20] = { 0 };
   const char *delim = "#";
   char *token = NULL;
@@ -193,7 +193,7 @@ void parseAndProcessReceivedData() {
       String temp = String(token);
       temperature = temp.substring(2);
     }
-    
+
     index++;
   }
 
@@ -204,7 +204,7 @@ void setup() {
   //Prepare Serial connection
   Serial.begin(115200);
   Serial.println("Initialize system");
-  
+
   resetOledDisplay();
   initializeOledDisplay();
   showLogo();
@@ -233,14 +233,14 @@ void loop() {
 
   if (loraDataAvailable) {
     loraDataAvailable = false;
-  
+
     //Read data
     int readIteration = 0;
     while (LoRa.available()) {
       receivedData = LoRa.readString();
       readIteration++;
     }
-    
+
     //Print packet infos
     Serial.print("Receive i:'");
     Serial.print(readIteration);
@@ -249,6 +249,6 @@ void loop() {
     Serial.print("' with RSSI ");
     Serial.println(LoRa.packetRssi());
     parseAndProcessReceivedData();
-    
+
   }
 }

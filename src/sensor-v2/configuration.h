@@ -10,20 +10,20 @@ char* temperatureCompensationKey = "tc";
 
 String getModuleUniqueidentifier() {
   String value = "";
-  
+
   if (!preferences.begin("config", true)) {
     return value;
   }
- 
+
   if (!preferences.isKey(moduleUniqueidentifierKey)) {
     preferences.end();
-    
+
     return value;
   }
 
   value = preferences.getString(moduleUniqueidentifierKey, "");
   preferences.end();
-  
+
   return value;
 }
 

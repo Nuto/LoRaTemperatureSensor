@@ -30,9 +30,9 @@ void setContrast() {
 
 void displayLogo() {
   display.drawBitmap(
-  (display.width()  - BOOT_LOGO_WIDTH ) / 2,
-  (display.height() - BOOT_LOGO_HEIGHT) / 2,
-  bitmap_nager, BOOT_LOGO_WIDTH, BOOT_LOGO_HEIGHT, 1);
+    (display.width()  - BOOT_LOGO_WIDTH ) / 2,
+    (display.height() - BOOT_LOGO_HEIGHT) / 2,
+    bitmap_nager, BOOT_LOGO_WIDTH, BOOT_LOGO_HEIGHT, 1);
 }
 
 void displaySmallText(int positionX, int positionY, String text) {
@@ -75,7 +75,7 @@ void initializeOledDisplay() {
   //Open connection to Display
   Wire.begin(OLED_SDA, OLED_SCL);
 
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3c, false, false)) { // Address 0x3C for 128x32
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3c, false, false)) { // Address 0x3C for 128x32
     Serial.println(F("SSD1306 allocation failed"));
     while (1);
   }
