@@ -73,20 +73,54 @@ void initializeLoRa(bool displayOutput, int delayDuration) {
     while (1);
   }
 
-  //Lora Send Configuration examples
-  //https://github.com/dragino/Arduino-Profile-Examples/blob/master/libraries/Dragino/examples/LoRa/LoRa_Simple_Client_Arduino/LoRa_Simple_Client_Arduino.ino
-
-  LoRa.setPreambleLength(8);
-  LoRa.setSignalBandwidth(31.25E3);
-  LoRa.setCodingRate4(8); //ranges from 5-8, default 5
-  LoRa.setSpreadingFactor(9);
   LoRa.setTxPower(20, PA_OUTPUT_PA_BOOST_PIN); //Supported values are 2 to 20 for PA_OUTPUT_PA_BOOST_PIN
+
+  LoRa.setPreambleLength(8); //ranges from 6-65535
   LoRa.setSyncWord(0x91); //ranges from 0-0xFF, default 0x34, see API docs
+
+  //setLoraProfileLongRange();
+  setLoraProfileUltraLongRange();
 
   //Debugging
   //LoRa.dumpRegisters(Serial);
 
   delay(delayDuration);
+}
+
+void setLoraProfileLongRange() {
+  //Lora Send Configuration examples
+  //https://github.com/dragino/Arduino-Profile-Examples/blob/master/libraries/Dragino/examples/LoRa/LoRa_Simple_Client_Arduino/LoRa_Simple_Client_Arduino.ino
+  //Documentation Source: https://josefmtd.com/2018/08/14/spreading-factor-bandwidth-coding-rate-and-bit-rate-in-lora-english/
+  LoRa.setSignalBandwidth(31.25E3);
+  //LoRa modulation also adds a forward error correction (FEC) in every data transmission.
+  //This implementation is done by encoding 4-bit data with redundancies into 5-bit, 6-bit, 7-bit, or even 8-bit.
+  //Using this redundancy will allow the LoRa signal to endure short interferences.
+  //The Coding Rate (CR) value need to be adjusted according to conditions of the channel used for data transmission.
+  //If there are too many interference in the channel, then it’s recommended to increase the value of CR.
+  //However, the rise in CR value will also increase the duration for the transmission
+  LoRa.setCodingRate4(8); //ranges from 5-8, default 5
+  //The value of Spreading Factor (SF) determines how many chips used to represent a symbol.
+  //The higher the SF value is, the more chips used to represent a symbol, which means there will be more processing gain from the receiver side.
+  //This will allow receiver to accept data signals with negative SNR value
+  LoRa.setSpreadingFactor(9); //ranges from 7-12, default 7
+}
+
+void setLoraProfileUltraLongRange() {
+  //Lora Send Configuration examples
+  //https://github.com/dragino/Arduino-Profile-Examples/blob/master/libraries/Dragino/examples/LoRa/LoRa_Simple_Client_Arduino/LoRa_Simple_Client_Arduino.ino
+  //Documentation Source: https://josefmtd.com/2018/08/14/spreading-factor-bandwidth-coding-rate-and-bit-rate-in-lora-english/
+  LoRa.setSignalBandwidth(125E3);
+  //LoRa modulation also adds a forward error correction (FEC) in every data transmission.
+  //This implementation is done by encoding 4-bit data with redundancies into 5-bit, 6-bit, 7-bit, or even 8-bit.
+  //Using this redundancy will allow the LoRa signal to endure short interferences.
+  //The Coding Rate (CR) value need to be adjusted according to conditions of the channel used for data transmission.
+  //If there are too many interference in the channel, then it’s recommended to increase the value of CR.
+  //However, the rise in CR value will also increase the duration for the transmission
+  LoRa.setCodingRate4(8); //ranges from 5-8, default 5
+  //The value of Spreading Factor (SF) determines how many chips used to represent a symbol.
+  //The higher the SF value is, the more chips used to represent a symbol, which means there will be more processing gain from the receiver side.
+  //This will allow receiver to accept data signals with negative SNR value
+  LoRa.setSpreadingFactor(12); //ranges from 7-12, default 7
 }
 
 void terminateLoRa() {
