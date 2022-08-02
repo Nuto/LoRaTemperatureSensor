@@ -34,9 +34,9 @@ Adjusting the sensor name each time in the code before compiling was very inconv
 
 The first housing variant (V1) still had few openings due to the additional optimization, the sensor now reacts faster to changes. The current housing variant is (V2)
 
-### Temperature profile
+### Temperature rise due to the esp32
 
-When measuring with a thermal imaging camera, it is now clearly visible that the ESP32 heats up the housing disadvantageously in continuous operation and influences the temperature measurement with a very high probability. The next development steps therefore go in the direction of deep sleep to improve this behavior.
+When measuring with a thermal imaging camera, it is now clearly visible that the `ESP32` heats up the housing disadvantageously in continuous operation and influences the temperature measurement with a very high probability. The next development steps therefore go in the direction of deep sleep to improve this behavior. After my first tests in deep sleep I could see a temperature difference of `1.5°` which is the `deep sleep` code optimization.
 
 <img src="doc/FLIR0017.jpg" title="thermal camera" width="300">
 
