@@ -42,7 +42,7 @@ When measuring with a thermal imaging camera, it is now clearly visible that the
 
 ## Used Hardware
 
-- [1x Heltec - WIFI LoRa 32 - V2.1](https://amzn.to/3NMaJKi)
+- [1x Heltec - WIFI LoRa 32 - V2.1 (SX1276)](https://amzn.to/3NMaJKi)
 - [1x AZDelivery GY-BME280 Temperature Sensor](https://amzn.to/3Aph1wp)
 - [1x Prototype Board](https://amzn.to/3OXw8Bc)
 
