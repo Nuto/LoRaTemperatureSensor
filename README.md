@@ -15,6 +15,10 @@ The closer to 0 the better the signal is, RSSI `minimum is -120dBm`.
 - `-30dBm` signal is strong
 - `-120dBm` signal is weak
 
+### Tools
+
+- https://loratools.nl/#/airtime
+- https://dramco.be/tools/lora-calculator/
 
 ## Findings
 
