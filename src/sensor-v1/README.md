@@ -9,3 +9,9 @@
 ## Disadvantages
 
 - No deep sleep (heat generation in the housing)
+
+## Available commands
+
+- `config.muid=LSM2` Set the module name
+- `config.tc=-0.2` Set a temperature compensation
+- `reset` Restart the module
