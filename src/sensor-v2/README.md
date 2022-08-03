@@ -10,3 +10,9 @@
 ## Disadvantages
 
 - No permanently active display (temperature and humidty)
+
+## Available commands
+
+- `config.muid=LSM2` Set the module name
+- `config.tc=-0.2` Set a temperature compensation
+- `reset` Restart the module
