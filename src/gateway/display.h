@@ -20,6 +20,14 @@ void displayDraw() {
   display.display();
 }
 
+void displayOff() {
+  display.ssd1306_command(SSD1306_DISPLAYOFF); 
+}
+
+void displayOn() {
+  display.ssd1306_command(SSD1306_DISPLAYON); 
+}
+
 void displayLogo() {
   display.drawBitmap(
     (display.width()  - BOOT_LOGO_WIDTH ) / 2,

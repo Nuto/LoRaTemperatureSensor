@@ -30,6 +30,9 @@ HTTPClient httpClient;
 unsigned long previousMillis = 0UL;
 unsigned long interval = 1000UL; //1s
 
+#define BUTTON_PIN 0
+int buttonPressed = 0;
+
 volatile unsigned int receiveCounter;
 volatile bool loraDataAvailable;
 String receivedData;
@@ -242,6 +245,8 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Initialize system");
 
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
   resetOledDisplay();
   initializeOledDisplay();
   showLogo();
@@ -256,6 +261,13 @@ void setup() {
 }
 
 void loop() {
+
+  buttonPressed = digitalRead(BUTTON_PIN);
+  if (buttonPressed == 0) { //If pressed
+    displayOn();
+  } else {
+    displayOff();
+  }
 
   unsigned long currentMillis = millis();
   if (currentMillis - previousMillis > interval) {
