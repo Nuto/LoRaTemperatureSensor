@@ -195,7 +195,7 @@ void setConfiguration() {
   //TODO: set display text "set configuration via serial"
 
   while (!Serial.available()) {
-    Serial.println(F("Configuration mode active, please set ModuleUniqueidentifier via 'config.muid=XXX' 1-254"));
+    Serial.println(F("Configuration mode active, please enter ModuleUniqueidentifier 1-254"));
     delay(2000);
   }
 
@@ -343,7 +343,7 @@ void loop() {
   Serial.println("Pressure:" + String(pressure / 100.0F));
 
   int differenceTemperature = abs(round((lastSentTemperature - temperature) * 100.0F));
-  Serial.println("temperature difference " + String(differenceTemperature) + " required 20");
+  Serial.println("temperature difference " + String(differenceTemperature) + " required more than 20");
   if (differenceTemperature > 20 || loopCounter > 60) //send info on a change of 0.2% or after 5 minutes
   {
     initializeLoRa(false, 0);
