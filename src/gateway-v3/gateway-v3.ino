@@ -272,6 +272,7 @@ void loop() {
       
       int num = LoRa.readBytes((uint8_t *)&message, receivedPacketSize);
       if (num != 5) {
+        failureCounter++;
         Serial.println("invalid package length");
         return;
       }
@@ -296,6 +297,7 @@ void loop() {
         sendWebRequest(sensorName, temperature);
       } else {
         Serial.println("invalid checksum");
+        failureCounter++;
       }
     }
   }
