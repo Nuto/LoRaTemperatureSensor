@@ -343,7 +343,7 @@ void loop() {
   Serial.println("Pressure:" + String(pressure / 100.0F));
 
   int differenceTemperature = abs(round((lastSentTemperature - temperature) * 100.0F));
-  Serial.println("temperature difference " + String(differenceTemperature) + " required more than 20");
+  Serial.println("Temperature difference " + String(differenceTemperature) + ", required more than 20");
   if (differenceTemperature > 20 || loopCounter > 60) //send info on a change of 0.2% or after 5 minutes
   {
     initializeLoRa(false, 0);
