@@ -40,6 +40,10 @@ When measuring with a thermal imaging camera, it is now clearly visible that the
 
 Adjusting the sensor name each time in the code before compiling was very inconvenient and error-prone. Since the ESP32 has no EEPROM I have now stored the values in the flash via the `Preferences` library.
 
+### LoRa 2 LoRa communication
+
+[lora-serialization](https://github.com/thesolarnomad/lora-serialization), [CayenneLPP](https://www.thethingsnetwork.org/docs/devices/arduino/api/cayennelpp/), [protobuf](https://github.com/protocolbuffers/protobuf) The protocols are too complicated to implement a simple device-to-device communication.
+
 ## Used Hardware
 
 - [1x Heltec - WIFI LoRa 32 - V2.1 (SX1276)](https://amzn.to/3NMaJKi)
