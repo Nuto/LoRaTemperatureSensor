@@ -166,13 +166,13 @@ void sendWebRequest(String graphName, float temperature) {
   httpClient.setConnectTimeout(2000);
   
   //httpClient.begin("https://webhook.site/5e077421-31f1-4ab2-a6b3-a52579a1f652");
-  httpClient.addHeader("api-key", "");
   if (!httpClient.begin("http://iotplotter.com/api/v2/feed/831079989972422411.csv")) {
     failureCounter++;
     httpClient.end();
     return;
   }
   
+  httpClient.addHeader("api-key", "");
   httpClient.addHeader("Content-Type", "application/x-www-form-urlencoded");
   httpClient.setTimeout(5000); //5 seconds
   
