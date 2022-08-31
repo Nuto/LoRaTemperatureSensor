@@ -199,10 +199,10 @@ void setConfiguration() {
     delay(2000);
   }
 
-  int uniqueidentifier = Serial.read();
+  String uniqueidentifier = Serial.readString();
   Serial.println("LSM" + String(uniqueidentifier));
 
-  setModuleUniqueidentifier(uint8_t(uniqueidentifier));
+  setModuleUniqueidentifier(uint8_t(uniqueidentifier.toInt()));
 
   delay(100);
   ESP.restart();

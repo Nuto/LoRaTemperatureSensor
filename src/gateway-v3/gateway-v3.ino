@@ -21,9 +21,6 @@ const char* password = SECRET_WLAN_PASS;
 //Libraries for WebRequests
 #include <HTTPClient.h>
 
-//Prepare HttpClient
-HTTPClient httpClient;
-
 //Prepare LORA
 #define BAND    868E6
 
@@ -35,7 +32,7 @@ int buttonPressed = 0;
 
 volatile unsigned int receiveCounter;
 volatile bool loraDataAvailable;
-int receivedPacketSize;
+volatile int receivedPacketSize;
 
 unsigned int failureCounter;
 
@@ -165,14 +162,23 @@ void showLogo() {
 void sendWebRequest(String graphName, float temperature) {
   String httpRequestData = "0," + graphName + "," + String(temperature);
 
+  HTTPClient httpClient;
   httpClient.setConnectTimeout(2000);
+  
   //httpClient.begin("https://webhook.site/5e077421-31f1-4ab2-a6b3-a52579a1f652");
-  httpClient.begin("http://iotplotter.com/api/v2/feed/831079989972422411.csv");
   httpClient.addHeader("api-key", "");
+  if (!httpClient.begin("http://iotplotter.com/api/v2/feed/831079989972422411.csv")) {
+    failureCounter++;
+    httpClient.end();
+    return;
+  }
+  
   httpClient.addHeader("Content-Type", "application/x-www-form-urlencoded");
   httpClient.setTimeout(5000); //5 seconds
+  
   int httpCode = httpClient.POST(httpRequestData);
   analyzeSystemHttpCodes(httpCode);
+  
   httpClient.end();
 
   Serial.println("iotplotter.com response code:" + String(httpCode) + ", Send Data(" + httpRequestData + ")");
