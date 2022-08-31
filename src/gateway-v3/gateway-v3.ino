@@ -159,14 +159,15 @@ void showLogo() {
   delay(2000);
 }
 
-void sendWebRequest(String graphName, float temperature) {
-  String httpRequestData = "0," + graphName + "," + String(temperature);
+void sendWebRequest(String sensorName, float temperature, byte humidity) {
+  //String httpRequestData = "0," + graphName + "," + String(temperature);
+  String httpRequestData = "{\"data\":{\"" + sensorName + "t\":[{\"value\":" + String(temperature) + "}],\"" + sensorName + "h\":[{\"value\":" + String(humidity) + "}]}}";
 
   HTTPClient httpClient;
   httpClient.setConnectTimeout(2000);
   
   //httpClient.begin("https://webhook.site/5e077421-31f1-4ab2-a6b3-a52579a1f652");
-  if (!httpClient.begin("http://iotplotter.com/api/v2/feed/831079989972422411.csv")) {
+  if (!httpClient.begin("http://iotplotter.com/api/v2/feed/831079989972422411")) {
     failureCounter++;
     httpClient.end();
     return;
@@ -300,7 +301,7 @@ void loop() {
         Serial.print("Humidity:");
         Serial.println(humidity);
 
-        sendWebRequest(sensorName, temperature);
+        sendWebRequest(sensorName, temperature, humidity);
       } else {
         Serial.println("invalid checksum");
         failureCounter++;
