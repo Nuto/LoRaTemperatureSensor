@@ -40,9 +40,13 @@ When measuring with a thermal imaging camera, it is now clearly visible that the
 
 Adjusting the sensor name each time in the code before compiling was very inconvenient and error-prone. Since the ESP32 has no EEPROM I have now stored the values in the flash via the `Preferences` library.
 
-### LoRa 2 LoRa communication
+### LoRa to LoRa communication (Without LoRaWan)
 
 [lora-serialization](https://github.com/thesolarnomad/lora-serialization), [CayenneLPP](https://www.thethingsnetwork.org/docs/devices/arduino/api/cayennelpp/), [protobuf](https://github.com/protocolbuffers/protobuf) The protocols are too complicated to implement a simple device-to-device communication.
+
+### Sensor broken
+
+The humidity sensor stopped working after a good 2 years. It now only delivers 100% values. It was only used indoors, but the humidity reached 100%. If you search for it on the Internet, other people seem to have the same problem.
 
 ## Used Hardware
 
