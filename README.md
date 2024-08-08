@@ -5,6 +5,13 @@ The aim of this project is to record the temperatures of the individual units in
 
 <img src="doc/housing-printed.png" title="Housing printed" width="400">
 
+```mermaid
+flowchart TD
+    A[Temperature and Humidity Sensor 'sensor-v3'] -->|LoRa communication| B(LoRa WLAN Gateway 'gateway-v3')
+    B -->|WLAN communication| C(Internet Router)
+    C --> D(iotplotter)
+```
+
 ## LoRa
 
 ### RSSI
